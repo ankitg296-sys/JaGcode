@@ -1,0 +1,303 @@
+# TalentMatch AI — Business Plan
+*Version 2.0 — Updated April 2026*
+
+---
+
+## 1. Executive Summary
+
+TalentMatch AI is an AI-powered talent intelligence platform that reimagines how job seekers and hiring managers connect. The long-term vision is a fully conversational hiring ecosystem — where candidates build structured **Meta CVs** through conversation, hiring managers define roles through **Meta JDs**, and AI handles matching, stack-ranking, and operational overhead autonomously.
+
+To get there, we start with a focused, immediately sellable product: a **RAG-based internal talent search engine** that lets hiring managers query their existing applicant database in natural language, get stack-ranked candidate lists, and receive AI-driven recommendations — all without changing their existing workflows.
+
+**Current Status:** Phase 1 PoC built and functional. Ready for design partner validation.
+
+---
+
+## 2. The Problem
+
+### For Hiring Managers
+- Sitting on databases of hundreds or thousands of past applicants they never revisit.
+- Manually screening resumes is slow, inconsistent, and biased toward keyword matching.
+- ATS tools offer basic filters but no semantic understanding — a candidate who says "led cross-functional teams" won't match a search for "project management experience."
+- No intelligent way to rediscover strong candidates who applied for different roles in the past.
+
+### For Recruiters & Talent Acquisition Teams
+- 60–70% of recruiter time goes into sourcing and screening — the most automatable parts of the funnel.
+- Internal databases are treated as dead data after initial screening.
+- Duplicate efforts: re-posting roles externally when qualified internal applicants already exist.
+
+### For Job Seekers *(addressed in later phases)*
+- Resumes are static, unstructured documents that fail to capture true capability.
+- No feedback loop — candidates never know *why* they weren't matched.
+- The application process is a black box.
+
+---
+
+## 3. Solution Architecture
+
+### Phase 1 — PoC / MVP: Internal Talent Search ✅ BUILT
+
+**What it is:**
+A local-first web application that ingests a folder of CVs, parses and indexes them, and allows hiring managers to search and stack-rank candidates using natural language.
+
+**Core Capabilities (built):**
+
+1. **Document Ingestion Pipeline**
+   - Accepts PDF and DOCX files from a local folder.
+   - Extracts raw text using `pdf-parse` and `mammoth`.
+   - Uses LLM to extract structured fields: name, title, skills, experience, education, industries, summary.
+   - Caches all parsed data locally — CVs are never re-processed.
+
+2. **Semantic Search + Stack Ranking**
+   - Hiring manager types a natural language requirement.
+   - LLM scores and ranks all candidates against the requirement.
+   - Returns ranked results with match score (0–100), match reasoning, and gap analysis.
+   - Each candidate gets a verdict: Strong Match / Good Match / Partial Match / Weak Match.
+
+3. **Conversational Follow-ups**
+   - Multi-turn conversation with memory across queries.
+   - Follow-up examples: *"From those results, who has fintech experience?"* / *"Compare #1 and #2"*.
+   - Conversation history kept to last 4 turns for cost efficiency.
+
+4. **Deep Dive**
+   - Click into any candidate to ask specific questions about their CV.
+   - Uses full raw CV text for accurate answers.
+
+**Decisions Made:**
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Deployment (Phase 1) | Local / on-machine | Fastest to ship, no infra cost, easy demo |
+| UI Framework | Node.js + Express + Vanilla JS | Minimal dependencies, works for non-technical users |
+| CV Source | Files in folder (PDF / DOCX) | Most common format, zero friction for customer |
+| LLM Provider | OpenRouter | Flexible, cost-efficient, model-agnostic |
+| Model | `mistralai/mistral-7b-instruct` | Cheapest capable model for JSON extraction + ranking |
+| Vector DB | None (Phase 1) | With <50 CVs, direct LLM ranking is faster and cheaper |
+| Cost Strategy | Parse once → cache; compact summaries for ranking | ~$0.0001 per search |
+
+**Tech Stack:**
+
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js 18+ |
+| Backend | Express.js |
+| PDF Parsing | `pdf-parse` |
+| DOCX Parsing | `mammoth` |
+| LLM API | OpenRouter (`/v1/chat/completions`) |
+| Model | `mistralai/mistral-7b-instruct` (configurable via .env) |
+| Storage | Local JSON cache (`data/cv-cache.json`) |
+| Frontend | Single-page HTML / CSS / JS |
+
+**File Structure:**
+```
+talentmatch-poc/
+├── server.js              ← Express server + API routes
+├── utils/
+│   ├── openrouter.js      ← OpenRouter API wrapper
+│   ├── cvParser.js        ← PDF/DOCX parsing + LLM extraction + cache
+│   └── ranker.js          ← Stack ranking with conversation support
+├── public/
+│   └── index.html         ← Full UI (single file)
+├── data/
+│   └── cv-cache.json      ← Auto-generated, persists parsed CVs
+├── .env                   ← API key + folder path (user configures)
+├── 1-INSTALL.bat          ← Windows: one-click install
+└── 2-START.bat            ← Windows: one-click start
+```
+
+**API Routes:**
+
+| Method | Route | Description |
+|---|---|---|
+| GET | `/api/status` | Returns loaded candidates and model info |
+| POST | `/api/ingest` | Parses CV folder and caches results |
+| POST | `/api/search` | Ranks candidates against a query |
+| POST | `/api/deepdive` | Deep-dive Q&A on a specific candidate |
+
+---
+
+## 4. Product Roadmap
+
+### Phase 1 — Local PoC ✅ COMPLETE
+- CV ingestion from folder (PDF/DOCX)
+- LLM-powered structured extraction with local cache
+- Stack ranking with explainable scores
+- Conversational follow-up queries
+- Deep dive per candidate
+- Windows double-click setup (no terminal needed)
+
+### Phase 2 — Deployable Product (Month 2–4)
+*Goal: something we can give to a paying design partner*
+
+- Web deployment — host on a server, accessible via browser (no local install)
+- File upload UI — drag and drop CVs directly in the browser
+- Vector DB integration — add ChromaDB or pgvector for scale (50–5,000 CVs)
+- Meta JD Builder — conversational interface to define job requirements (structured output)
+- User accounts — basic auth, multiple hiring managers per org
+- Saved searches — bookmark and re-run searches
+- Export — download shortlists as CSV or PDF report
+- ATS integration (basic) — import from Greenhouse/Lever via CSV export
+
+### Phase 3 — Two-Sided Platform (Month 5–10)
+*Goal: bring candidates into the picture*
+
+- Meta CV Builder — conversational interface for candidates to build structured profiles
+- Candidate portal — candidates can update their profile, see which roles they may fit
+- Bi-directional matching — match candidates to roles AND roles to candidates
+- Skills gap analysis — show candidates what they need to develop for a target role
+- Recruiter dashboard — pipeline view, shortlist management, notes, tags
+
+### Phase 4 — Autonomous Recruiting Engine (Month 10–20)
+*Goal: eliminate most operational overhead in recruiting*
+
+- End-to-end workflow — JD creation → candidate ranking → outreach → interview scheduling
+- Predictive analytics — offer acceptance probability, retention risk, culture fit
+- Marketplace model — connect external job seekers with hiring companies
+- API platform — let other HR tools plug into the matching engine
+- White-label — resell engine to staffing agencies and ATS vendors
+
+---
+
+## 5. Market Analysis
+
+### Target Market (Phase 1–2)
+- **Primary:** Mid-to-large enterprises (500+ employees) with internal TA teams and existing applicant databases.
+- **Secondary:** Recruitment / staffing agencies sitting on candidate databases they want to monetize better.
+- **Tertiary:** Fast-growing startups (100–500 employees) drowning in applications.
+
+### Market Size
+- Global recruitment software market: ~$3.2B (2024), projected ~$5.3B by 2030.
+- AI in recruitment is the fastest-growing segment — 67% of HR leaders plan to increase AI investment.
+- ATS market alone: $2.7B — most tools lack semantic intelligence, creating a clear upgrade opportunity.
+- Average cost-per-hire in India: ₹25,000–₹1,50,000 depending on role. A 30% reduction is a compelling ROI story.
+
+### Why Now
+- RAG and LLM capabilities have matured to production-grade quality.
+- Enterprises actively seek AI wins in HR — top-3 function for enterprise AI adoption.
+- Regulation (EU AI Act) is pushing toward explainable AI in hiring — our transparent scoring is a feature, not a liability.
+
+---
+
+## 6. Competitive Landscape
+
+| Competitor | What They Do | Our Differentiation |
+|---|---|---|
+| **Eightfold AI** | Talent intelligence platform | Enterprise-heavy, expensive; we start simpler and cheaper |
+| **HireVue** | Video interview AI, assessments | We focus on pre-screening/matching, not assessments |
+| **SeekOut** | External talent sourcing | We mine *internal* databases first — zero new data required |
+| **Existing ATS** | Greenhouse, Lever, Workday | Keyword search only; no semantic understanding |
+| **Naukri / LinkedIn** | Job boards + basic matching | We're an intelligence layer, not a job board |
+
+### Our Wedge
+Most competitors require candidates to do something new or focus on external sourcing. **We unlock value from data companies already have.** Zero friction for candidates, immediate ROI for hiring managers. This is a fundamentally easier sale.
+
+---
+
+## 7. Business Model
+
+### Pricing Strategy (Phase 2 onwards)
+
+| Tier | Database Size | Monthly Price | Includes |
+|---|---|---|---|
+| Starter | Up to 5,000 CVs | $499/mo | 3 seats, 500 searches/mo, email support |
+| Growth | Up to 25,000 CVs | $1,499/mo | 10 seats, 2,000 searches/mo, priority support |
+| Enterprise | Unlimited | Custom | Unlimited seats, SSO, API access, SLA |
+
+### Revenue Projections (Conservative)
+
+| Timeline | Customers | ARR |
+|---|---|---|
+| Month 6 | 5 | $90K |
+| Month 12 | 20 | $360K |
+| Month 18 | 50 | $1.2M |
+| Month 24 | 100 | $3M |
+
+### Unit Economics Target
+- CAC: $2,000–5,000
+- LTV: $18,000–50,000 (24–36 month retention)
+- LTV:CAC ratio target: 5:1+
+
+---
+
+## 8. Go-to-Market Strategy
+
+### Now — Design Partners (Month 1–3)
+- Use the PoC to land 2–3 companies as design partners.
+- Offer free access in exchange for feedback, usage data, and a case study.
+- Target: companies with 500+ applicants in their existing database, actively hiring.
+- The demo story: *"You're sitting on 1,000 CVs. 80% have never been revisited. We surface the best ones in 10 seconds."*
+
+### Phase 2 — Outbound Sales (Month 3–6)
+- Target HR/TA leaders at mid-market companies via LinkedIn and HR tech events.
+- Lead with ROI: time-to-fill reduction, cost-per-hire reduction, internal pipeline rediscovery.
+- Free 2-week pilot on the customer's real data.
+
+### Phase 3 — Content & Community (Month 4–12)
+- Publish case studies from design partners.
+- Build thought leadership around "internal talent rediscovery."
+- Attend SHRM India, TechHR, and similar HR conferences.
+
+### Phase 4 — Channel Partnerships (Month 9–18)
+- Integrate with popular ATS platforms as a plugin.
+- Partner with HR consulting firms who can resell.
+
+---
+
+## 9. Key Risks & Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| **Data privacy / compliance** | Local deployment by default; data never leaves company network |
+| **AI bias in ranking** | Explainable scoring; bias audit before enterprise launch; human-in-the-loop |
+| **Low CV data quality** | LLM-powered parsing handles messy/inconsistent formats |
+| **ATS incumbents adding AI** | Move faster on conversational UX; depth of matching beats bolt-on features |
+| **Model quality variance** | OpenRouter lets us swap models instantly; configurable via env variable |
+| **LLM costs at scale** | Cache-first strategy; embeddings for pre-filter at scale; LLM only for synthesis |
+
+---
+
+## 10. Immediate Next Steps
+
+| Priority | Action | Timeline |
+|---|---|---|
+| 🔴 Critical | Test PoC with real CVs, validate ranking quality | This week |
+| 🔴 Critical | Identify 2–3 design partner candidates | Week 1–2 |
+| 🟡 High | Refine ranking quality based on real CV results | Week 2–3 |
+| 🟡 High | Build Phase 2 web deployment version | Month 2 |
+| 🟢 Medium | Define pricing and pilot terms for design partners | Month 1 |
+| 🟢 Medium | Create demo video of PoC working | Month 1–2 |
+
+---
+
+## 11. Success Metrics
+
+### Phase 1 (PoC Validation)
+- Ranking accuracy: 70%+ of top-3 ranked candidates are interview-worthy (validated by HM feedback)
+- Time-to-first-value: useful results within 60 seconds of loading CVs
+- Demo conversion: PoC shown to a potential design partner within 30 days
+
+### Phase 2 (Product)
+- Design partner retention: 80%+ convert from pilot to paid
+- NPS: 40+ from early customers
+- Time-to-fill reduction: 30–50% vs. manual screening
+
+### Growth Phase
+- Monthly active users per account: 3+ (proves org adoption, not single-user)
+- Candidates rediscovered: % of hires that came from existing database
+- Cost-per-hire reduction: measurable and reportable
+
+---
+
+## 12. Why This Wins
+
+1. **Zero friction entry** — works with data companies already have; no process change for candidates.
+2. **Immediate, measurable ROI** — reduces sourcing time and cost from day one.
+3. **Defensible moat** — as we move from search → Meta CV/JD → marketplace, we accumulate structured talent data that becomes increasingly hard to replicate.
+4. **Regulation-ready** — explainable AI scoring positions us well for AI governance requirements.
+5. **Natural expansion** — each phase is independently sellable; we don't need the full vision to generate revenue.
+
+---
+
+*Document version: 2.0*
+*Last updated: April 2026*
+*Current phase: Phase 1 PoC — built, testing with real CVs*

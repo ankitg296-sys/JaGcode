@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TalentMatch AI v2</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3250;
+  --accent:#6366f1;--accent-h:#818cf8;--accent-dim:rgba(99,102,241,.15);
+  --success:#10b981;--warning:#f59e0b;--danger:#ef4444;
+  --text:#e2e8f0;--muted:#94a3b8;--dim:#64748b;
+  --radius:12px;--radius-sm:8px;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+/* ── Layout ── */
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:54px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;gap:12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;white-space:nowrap}
+.logo-icon{width:30px;height:30px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:15px}
+.badge{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent-h);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+.status-pills{display:flex;gap:8px;align-items:center}
+.pill{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--muted)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--dim)}
+.dot.on{background:var(--success);box-shadow:0 0 5px var(--success)}
+.dot.busy{background:var(--warning);animation:pulse 1s infinite}
+
+/* ── Nav tabs ── */
+nav{display:flex;gap:2px;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.nav-tab{padding:10px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--accent-h);border-bottom-color:var(--accent)}
+
+/* ── Main ── */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* ── Sidebar ── */
+.sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-section{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-section h3{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.sidebar-scroll{flex:1;overflow-y:auto;padding:12px}
+
+/* ── Content ── */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tab-view{flex:1;overflow-y:auto;padding:20px 24px;display:none}
+.tab-view.active{display:flex;flex-direction:column}
+
+/* ── Inputs / Buttons ── */
+input[type=text],input[type=password],textarea{width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;transition:border-color .2s;font-family:inherit}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:72px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;width:100%;margin-top:8px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-h)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);width:auto}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--border);width:auto}
+.btn-danger:hover{background:rgba(239,68,68,.1);border-color:var(--danger)}
+label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;margin-top:10px}
+label:first-child{margin-top:0}
+
+/* ── Upload tab ── */
+.drop-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-dim)}
+.drop-icon{font-size:36px;margin-bottom:10px}
+.drop-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.drop-sub{font-size:12px;color:var(--muted)}
+.file-input{display:none}
+.candidate-table{width:100%;border-collapse:collapse}
+.candidate-table th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);padding:6px 12px;border-bottom:1px solid var(--border)}
+.candidate-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.candidate-table td:first-child{color:var(--text);font-weight:500}
+.candidate-table tr:hover td{background:var(--surface2)}
+.source-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--surface2);border:1px solid var(--border)}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.section-title{font-size:13px;font-weight:600}
+.section-count{font-size:11px;color:var(--muted)}
+
+/* ── Search tab ── */
+.search-bar-row{display:flex;gap:8px;margin-bottom:10px}
+.search-bar-row input{flex:1;padding:11px 14px;font-size:14px}
+.search-btn{padding:11px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap}
+.search-btn:hover{background:var(--accent-h)}
+.search-btn:disabled{opacity:.5;cursor:not-allowed}
+.hints{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.hint{padding:3px 9px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s}
+.hint:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.jd-selector{margin-bottom:10px}
+.jd-selector select{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;cursor:pointer}
+.jd-selector select:focus{border-color:var(--accent)}
+.conv-bar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);margin-bottom:14px}
+.reset-link{color:var(--accent);cursor:pointer}
+.reset-link:hover{text-decoration:underline}
+.results-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.results-meta-left{font-size:12px;color:var(--muted)}
+.export-btns{display:flex;gap:6px}
+.export-btn{padding:5px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s}
+.export-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+
+/* ── Candidate card ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:all .15s;margin-bottom:10px}
+.card:hover{border-color:var(--accent);background:var(--surface2)}
+.card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.card-rank{width:26px;height:26px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0}
+.card-rank.top{background:rgba(99,102,241,.2);border-color:var(--accent);color:var(--accent)}
+.card-info{flex:1}
+.card-name{font-size:14px;font-weight:600;margin-bottom:1px}
+.card-title{font-size:11px;color:var(--muted)}
+.card-meta{display:flex;gap:8px;margin-top:3px;font-size:11px;color:var(--dim)}
+.score-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.score-ring{width:48px;height:48px;position:relative;display:flex;align-items:center;justify-content:center}
+.score-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.score-ring circle{fill:none;stroke-width:4}
+.track{stroke:var(--surface2)}
+.fill-high{stroke:var(--success)}
+.fill-med{stroke:var(--warning)}
+.fill-low{stroke:var(--danger)}
+.score-num{font-size:12px;font-weight:700;position:relative;z-index:1}
+.verdict{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.v-strong{background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)}
+.v-good{background:rgba(99,102,241,.15);color:var(--accent-h);border:1px solid rgba(99,102,241,.3)}
+.v-partial{background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3)}
+.v-weak{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+.card-body{margin-top:12px}
+.card-summary{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.rg{display:flex;gap:14px}
+.rg-col{flex:1}
+.rg-label{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
+.rg-col:first-child .rg-label{color:rgba(16,185,129,.8)}
+.rg-col:last-child .rg-label{color:rgba(245,158,11,.8)}
+.bullets{list-style:none;display:flex;flex-direction:column;gap:3px}
+.bullets li{font-size:11px;color:var(--muted);padding-left:12px;position:relative}
+.bullets li::before{content:"•";position:absolute;left:0}
+.rg-col:first-child .bullets li::before{color:var(--success)}
+.rg-col:last-child .bullets li::before{color:var(--warning)}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.tag{padding:2px 7px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);font-size:10px;color:var(--muted)}
+.card-footer{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:6px}
+.dd-btn{padding:5px 12px;border-radius:var(--radius-sm);background:var(--accent-dim);border:1px solid rgba(99,102,241,.3);color:var(--accent);font-size:11px;cursor:pointer;transition:all .15s}
+.dd-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.save-btn{padding:5px 12px;border-radius:var(--radius-sm);background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;cursor:pointer;transition:all .15s}
+.save-btn:hover{border-color:var(--success);color:var(--success)}
+
+/* ── Saved searches tab ── */
+.saved-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.saved-info{flex:1}
+.saved-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.saved-query{font-size:11px;color:var(--muted);margin-bottom:3px}
+.saved-meta{font-size:10px;color:var(--dim)}
+.saved-actions{display:flex;gap:6px;flex-shrink:0}
+
+/* ── JD tab ── */
+.jd-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px}
+.jd-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.jd-title{font-size:14px;font-weight:600}
+.jd-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.jd-actions{display:flex;gap:6px;flex-shrink:0}
+.jd-skills{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.jd-skill{padding:2px 7px;border-radius:4px;background:var(--accent-dim);border:1px solid rgba(99,102,241,.3);font-size:10px;color:var(--accent-h)}
+.jd-skill.nice{background:var(--surface2);border-color:var(--border);color:var(--muted)}
+
+/* ── Import tab ── */
+.import-instructions{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;font-size:12px;color:var(--muted);line-height:1.7}
+.import-instructions strong{color:var(--text)}
+.import-instructions code{background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--accent-h)}
+
+/* ── Welcome / loading states ── */
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+.welcome-icon{font-size:44px;margin-bottom:14px}
+.welcome h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.welcome p{font-size:13px;color:var(--muted);max-width:380px;line-height:1.6}
+.loading-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted)}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+.spinner.dark{border-color:rgba(99,102,241,.2);border-top-color:var(--accent)}
+.spinner.lg{width:28px;height:28px;border-width:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── Sidebar conversation ── */
+.chat-turn{padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:11px;margin-bottom:6px}
+.chat-turn.user{background:var(--accent-dim);border-color:var(--accent)}
+.chat-lbl{font-size:10px;font-weight:700;color:var(--dim);margin-bottom:2px}
+.chat-turn.user .chat-lbl{color:var(--accent-h)}
+.empty-state{text-align:center;color:var(--dim);font-size:12px;padding:16px 0}
+
+/* ── Deep dive panel ── */
+.dd-panel{position:fixed;top:54px;right:0;bottom:0;width:400px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease;z-index:100}
+.dd-panel.open{transform:translateX(0)}
+.dd-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.dd-header h3{font-size:13px;font-weight:600}
+.dd-close{width:26px;height:26px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s}
+.dd-close:hover{border-color:var(--danger);color:var(--danger)}
+.dd-cinfo{padding:12px 18px;border-bottom:1px solid var(--border)}
+.dd-cname{font-size:15px;font-weight:700}
+.dd-ctitle{font-size:11px;color:var(--muted);margin-top:2px}
+.dd-chat{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.dd-msg{padding:9px 12px;border-radius:var(--radius-sm);max-width:88%;font-size:12px;line-height:1.5}
+.dd-msg.user{background:var(--accent-dim);border:1px solid rgba(99,102,241,.3);align-self:flex-end;color:var(--text)}
+.dd-msg.assistant{background:var(--surface2);border:1px solid var(--border);align-self:flex-start;color:var(--muted)}
+.dd-input-row{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:6px}
+.dd-input-row input{flex:1;padding:8px 10px;font-size:12px}
+.dd-send{padding:8px 12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:12px}
+.dd-send:hover{background:var(--accent-h)}
+.dd-send:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── JD Builder modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;display:none}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:520px;max-width:95vw;max-height:85vh;overflow-y:auto;padding:24px}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:6px}
+.modal p{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+.modal-footer{display:flex;gap:8px;margin-top:16px}
+.modal-footer .btn{margin-top:0;width:auto;flex:1}
+
+/* ── Toast ── */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px}
+.toast{padding:10px 16px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;max-width:300px;animation:slideIn .2s ease}
+.toast.success{border-color:var(--success)}
+.toast.error{border-color:var(--danger);color:#fca5a5}
+@keyframes slideIn{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Upload progress ── */
+.upload-progress{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;display:none}
+.upload-progress.show{display:block}
+.progress-title{font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.progress-bar-wrap{background:var(--surface2);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px}
+.progress-bar{height:100%;background:var(--accent);border-radius:4px;transition:width .3s;width:0%}
+.progress-files{font-size:11px;color:var(--muted)}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎯</div>
+    TalentMatch AI
+    <span class="badge">v2</span>
+  </div>
+  <div class="status-pills">
+    <div class="pill"><div class="dot" id="api-dot"></div><span id="api-text">Connecting…</span></div>
+    <div class="pill" id="cand-pill" style="display:none"><span id="cand-count">0</span>&nbsp;candidates</div>
+  </div>
+</header>
+
+<!-- Nav tabs -->
+<nav>
+  <div class="nav-tab active" onclick="switchTab('upload')" id="tab-upload">📂 Upload</div>
+  <div class="nav-tab" onclick="switchTab('search')" id="tab-search">🔍 Search</div>
+  <div class="nav-tab" onclick="switchTab('saved')" id="tab-saved">🔖 Saved</div>
+  <div class="nav-tab" onclick="switchTab('jds')" id="tab-jds">📋 JD Library</div>
+  <div class="nav-tab" onclick="switchTab('import')" id="tab-import">📥 CSV Import</div>
+</nav>
+
+<div class="main">
+
+<!-- Sidebar (search context) -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <h3>Conversation</h3>
+    <button class="btn btn-ghost" style="width:100%;margin-top:0" onclick="resetConversation()">🔄 Start Fresh</button>
+  </div>
+  <div class="sidebar-scroll">
+    <div id="chat-history"><p class="empty-state">Search history will appear here.</p></div>
+  </div>
+</aside>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- ── Upload tab ── -->
+  <div class="tab-view active" id="view-upload">
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <div class="drop-icon">📄</div>
+      <div class="drop-title">Drop CVs here or click to browse</div>
+      <div class="drop-sub">PDF and DOCX files · Up to 100 files at once</div>
+    </div>
+    <input type="file" id="file-input" class="file-input" multiple accept=".pdf,.docx" onchange="uploadFiles(this.files)"/>
+
+    <div class="upload-progress" id="upload-progress">
+      <div class="progress-title"><span class="spinner dark"></span><span id="progress-title-text">Uploading & parsing…</span></div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="progress-files" id="progress-files"></div>
+    </div>
+
+    <div id="candidate-list-section">
+      <div class="section-header">
+        <span class="section-title">Loaded Candidates</span>
+        <span class="section-count" id="total-count">0 candidates</span>
+      </div>
+      <div id="candidate-table-wrap">
+        <p class="empty-state">No candidates loaded yet. Upload CV files above.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Search tab ── -->
+  <div class="tab-view" id="view-search">
+    <div class="search-bar-row">
+      <input type="text" id="search-input" placeholder="e.g. &quot;Senior PM with B2B SaaS and 5+ years experience&quot;" onkeydown="if(event.key==='Enter')doSearch()"/>
+      <button class="search-btn" id="search-btn" onclick="doSearch()">Search</button>
+    </div>
+    <div class="hints">
+      <span class="hint" onclick="setHint('Senior software engineer with React and Node.js')">Senior SWE – React/Node</span>
+      <span class="hint" onclick="setHint('HR manager with talent acquisition experience')">HR / TA</span>
+      <span class="hint" onclick="setHint('Data scientist with Python and machine learning')">Data Scientist</span>
+      <span class="hint" onclick="setHint('Product manager with B2B SaaS background')">PM – B2B SaaS</span>
+    </div>
+    <div class="jd-selector">
+      <select id="jd-select" onchange="onJDSelect()">
+        <option value="">— Or search using a saved JD —</option>
+      </select>
+    </div>
+    <div class="conv-bar" id="conv-bar" style="display:none">
+      💬 Conversation context active (<span id="turn-count">0</span> turns) &nbsp;
+      <span class="reset-link" onclick="resetConversation()">Start fresh</span>
+    </div>
+
+    <!-- Results -->
+    <div id="search-welcome" class="welcome">
+      <div class="welcome-icon">🔍</div>
+      <h2>Search Your Talent Pool</h2>
+      <p>Type a natural language requirement above, or pick a saved JD, to get AI-ranked candidates with match scores and reasoning.</p>
+    </div>
+    <div id="search-loading" class="loading-state" style="display:none">
+      <div class="spinner dark lg"></div>
+      <span>Ranking candidates…</span>
+    </div>
+    <div id="search-results" style="display:none">
+      <div class="results-meta">
+        <div class="results-meta-left">
+          <strong id="res-count">0</strong> candidates for <strong id="res-query"></strong>
+        </div>
+        <div class="export-btns">
+          <button class="export-btn" onclick="exportResults('csv')">⬇ CSV</button>
+          <button class="export-btn" onclick="exportResults('pdf')">⬇ PDF</button>
+          <button class="export-btn" onclick="saveCurrentSearch()">🔖 Save Search</button>
+        </div>
+      </div>
+      <div id="results-list"></div>
+    </div>
+  </div>
+
+  <!-- ── Saved searches tab ── -->
+  <div class="tab-view" id="view-saved">
+    <div class="section-header" style="margin-bottom:14px">
+      <span class="section-title">Saved Searches</span>
+    </div>
+    <div id="saved-list"><p class="empty-state">No saved searches yet. Run a search and click 🔖 Save Search.</p></div>
+  </div>
+
+  <!-- ── JD Library tab ── -->
+  <div class="tab-view" id="view-jds">
+    <div class="section-header" style="margin-bottom:14px">
+      <span class="section-title">JD Library</span>
+      <button class="btn-ghost" onclick="openJDBuilder()">+ New JD</button>
+    </div>
+    <div id="jd-list"><p class="empty-state">No JDs yet. Click + New JD to build one with AI.</p></div>
+  </div>
+
+  <!-- ── CSV Import tab ── -->
+  <div class="tab-view" id="view-import">
+    <div class="import-instructions">
+      <strong>Import candidates from any ATS CSV export.</strong><br><br>
+      Your CSV should have a header row. Recognised column names (case-insensitive):<br>
+      <code>name</code> &nbsp;<code>title</code> &nbsp;<code>email</code> &nbsp;<code>phone</code> &nbsp;
+      <code>location</code> &nbsp;<code>company</code> &nbsp;<code>skills</code> &nbsp;
+      <code>industries</code> &nbsp;<code>experience_years</code> &nbsp;<code>summary</code><br><br>
+      Skills and industries can be separated by commas, semicolons, or pipes.
+    </div>
+    <div class="drop-zone" id="csv-drop-zone" onclick="document.getElementById('csv-input').click()" ondragover="onDragOver(event,true)" ondragleave="onDragLeave(event,true)" ondrop="onCSVDrop(event)">
+      <div class="drop-icon">📊</div>
+      <div class="drop-title">Drop CSV file here or click to browse</div>
+      <div class="drop-sub">Greenhouse, Lever, or any standard ATS export</div>
+    </div>
+    <input type="file" id="csv-input" class="file-input" accept=".csv" onchange="importCSV(this.files[0])"/>
+    <div id="import-status" style="display:none;margin-top:14px"></div>
+  </div>
+
+</div><!-- .content -->
+</div><!-- .main -->
+</div><!-- .app -->
+
+<!-- Deep Dive Panel -->
+<div class="dd-panel" id="dd-panel">
+  <div class="dd-header"><h3>🔍 Deep Dive</h3><div class="dd-close" onclick="closeDD()">✕</div></div>
+  <div class="dd-cinfo"><div class="dd-cname" id="dd-name">—</div><div class="dd-ctitle" id="dd-title">—</div></div>
+  <div class="dd-chat" id="dd-chat"></div>
+  <div class="dd-input-row">
+    <input type="text" id="dd-input" placeholder="Ask anything about this candidate…" onkeydown="if(event.key==='Enter')sendDD()"/>
+    <button class="dd-send" id="dd-send" onclick="sendDD()">Ask</button>
+  </div>
+</div>
+
+<!-- JD Builder Modal -->
+<div class="modal-overlay" id="jd-modal">
+  <div class="modal">
+    <h2>🧠 Build a Job Description</h2>
+    <p>Describe the role in plain English. AI will extract a structured JD you can reuse for matching.</p>
+    <label>Role Description</label>
+    <textarea id="jd-desc" placeholder="e.g. I need a Senior Product Manager for our B2B SaaS platform. At least 5 years of PM experience, fintech background preferred, strong stakeholder management and data literacy." rows="5"></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeJDBuilder()">Cancel</button>
+      <button class="btn btn-primary" id="jd-build-btn" onclick="buildJD()">✨ Build JD</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save Search Modal -->
+<div class="modal-overlay" id="save-modal">
+  <div class="modal">
+    <h2>🔖 Save Search</h2>
+    <p>Give this search a name so you can re-run it any time.</p>
+    <label>Search Name</label>
+    <input type="text" id="save-name" placeholder="e.g. Senior PM Pipeline – Q2"/>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSaveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentResults = [];
+let currentQuery = '';
+let activeDD = null;
+let convHistory = [];
+let convTurns = 0;
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  refreshStatus();
+  refreshCandidates();
+  refreshSaved();
+  refreshJDs();
+});
+
+async function refreshStatus() {
+  const d = await api('GET', '/api/status');
+  if (!d) return;
+  const dot = document.getElementById('api-dot');
+  const txt = document.getElementById('api-text');
+  dot.className = 'dot ' + (d.ready ? 'on' : '');
+  txt.textContent = d.ready ? d.model.split('/').pop() : 'No API key';
+  updateCandPill(d.candidateCount);
+}
+
+function updateCandPill(n) {
+  const pill = document.getElementById('cand-pill');
+  document.getElementById('cand-count').textContent = n;
+  pill.style.display = n > 0 ? '' : 'none';
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  const sidebar = document.getElementById('sidebar');
+  sidebar.style.display = name === 'search' ? '' : 'none';
+  if (name === 'saved') refreshSaved();
+  if (name === 'jds') refreshJDs();
+}
+
+// ── Upload ─────────────────────────────────────────────────────────────────
+function onDragOver(e, csv) { e.preventDefault(); (csv ? document.getElementById('csv-drop-zone') : document.getElementById('drop-zone')).classList.add('drag-over'); }
+function onDragLeave(e, csv) { (csv ? document.getElementById('csv-drop-zone') : document.getElementById('drop-zone')).classList.remove('drag-over'); }
+function onDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); uploadFiles(e.dataTransfer.files); }
+function onCSVDrop(e) { e.preventDefault(); document.getElementById('csv-drop-zone').classList.remove('drag-over'); importCSV(e.dataTransfer.files[0]); }
+
+async function uploadFiles(files) {
+  if (!files?.length) return;
+  const cvFiles = Array.from(files).filter(f => /\.(pdf|docx)$/i.test(f.name));
+  if (!cvFiles.length) { toast('Please upload PDF or DOCX files only.', 'error'); return; }
+
+  const prog = document.getElementById('upload-progress');
+  const bar = document.getElementById('progress-bar');
+  const progFiles = document.getElementById('progress-files');
+  const progTitle = document.getElementById('progress-title-text');
+  prog.classList.add('show');
+  bar.style.width = '10%';
+  progTitle.textContent = `Uploading ${cvFiles.length} file(s)…`;
+
+  const fd = new FormData();
+  cvFiles.forEach(f => fd.append('files', f));
+
+  try {
+    bar.style.width = '40%';
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    bar.style.width = '90%';
+    const data = await res.json();
+    bar.style.width = '100%';
+
+    if (!res.ok) { toast(data.error || 'Upload failed', 'error'); }
+    else {
+      progTitle.textContent = data.message;
+      progFiles.textContent = data.results.filter(r => !r.success).map(r => `✗ ${r.fileName}: ${r.error}`).join(' · ') || '';
+      toast(data.message, 'success');
+      updateCandPill(data.candidateCount);
+      refreshCandidates();
+    }
+  } catch (e) {
+    toast('Upload error: ' + e.message, 'error');
+  }
+
+  setTimeout(() => { prog.classList.remove('show'); bar.style.width = '0%'; }, 3000);
+  document.getElementById('file-input').value = '';
+}
+
+async function refreshCandidates() {
+  const data = await api('GET', '/api/candidates');
+  if (!data) return;
+  const { candidates } = data;
+  document.getElementById('total-count').textContent = `${candidates.length} candidate${candidates.length !== 1 ? 's' : ''}`;
+
+  const wrap = document.getElementById('candidate-table-wrap');
+  if (!candidates.length) { wrap.innerHTML = '<p class="empty-state">No candidates loaded yet. Upload CV files above.</p>'; return; }
+
+  wrap.innerHTML = `<table class="candidate-table">
+    <thead><tr><th>Name</th><th>Title</th><th>Exp</th><th>Source</th><th></th></tr></thead>
+    <tbody>${candidates.map(c => `
+      <tr>
+        <td>${esc(c.name || c.fileName)}</td>
+        <td>${esc(c.title || '—')}</td>
+        <td>${c.total_experience_years != null ? c.total_experience_years + 'yr' : '—'}</td>
+        <td><span class="source-badge">${esc(c.source || 'upload')}</span></td>
+        <td><button class="btn-danger" style="padding:3px 8px;font-size:11px" onclick="deleteCandidate('${c.id}')">✕</button></td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+  updateCandPill(candidates.length);
+}
+
+async function deleteCandidate(id) {
+  if (!confirm('Remove this candidate?')) return;
+  await api('DELETE', `/api/candidates/${id}`);
+  refreshCandidates();
+  toast('Candidate removed.', 'success');
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────
+function setHint(t) { document.getElementById('search-input').value = t; document.getElementById('search-input').focus(); }
+
+function onJDSelect() {
+  const sel = document.getElementById('jd-select');
+  if (sel.value) {
+    const jds = window._jds || [];
+    const jd = jds.find(j => j.id === sel.value);
+    if (jd) document.getElementById('search-input').value = jd.summary || jd.title;
+  }
+}
+
+async function doSearch() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) return;
+  document.getElementById('search-welcome').style.display = 'none';
+  document.getElementById('search-loading').style.display = '';
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('search-btn').disabled = true;
+
+  const data = await api('POST', '/api/search', { query });
+  document.getElementById('search-btn').disabled = false;
+  document.getElementById('search-loading').style.display = 'none';
+
+  if (!data) { document.getElementById('search-welcome').style.display = ''; return; }
+
+  currentResults = data.results;
+  currentQuery = query;
+  convTurns = data.conversationTurns;
+  convHistory.push({ role: 'user', text: query });
+  convHistory.push({ role: 'ai', text: `Top: ${data.results[0]?.name || '—'} (${data.results[0]?.score ?? '—'}/100)` });
+  renderConvHistory();
+
+  if (convTurns > 0) {
+    document.getElementById('conv-bar').style.display = '';
+    document.getElementById('turn-count').textContent = convTurns;
+  }
+
+  document.getElementById('res-count').textContent = data.results.length;
+  document.getElementById('res-query').textContent = `"${query}"`;
+  document.getElementById('results-list').innerHTML = data.results.map((c, i) => buildCard(c, i)).join('');
+  document.getElementById('search-results').style.display = '';
+}
+
+function buildCard(c, i) {
+  const circ = 2 * Math.PI * 20;
+  const off = circ - (c.score / 100) * circ;
+  const fc = c.score >= 80 ? 'fill-high' : c.score >= 55 ? 'fill-med' : 'fill-low';
+  const vc = c.verdict?.includes('Strong') ? 'v-strong' : c.verdict?.includes('Good') ? 'v-good' : c.verdict?.includes('Partial') ? 'v-partial' : 'v-weak';
+  return `<div class="card">
+    <div class="card-top">
+      <div class="card-rank ${i < 3 ? 'top' : ''}">#${i + 1}</div>
+      <div class="card-info">
+        <div class="card-name">${esc(c.name || c.fileName)}</div>
+        <div class="card-title">${esc(c.title || 'N/A')}</div>
+        <div class="card-meta">
+          ${c.total_experience_years != null ? `<span>🕐 ${c.total_experience_years}yr</span>` : ''}
+          ${c.location ? `<span>📍 ${esc(c.location)}</span>` : ''}
+          ${c.current_company ? `<span>🏢 ${esc(c.current_company)}</span>` : ''}
+        </div>
+      </div>
+      <div class="score-wrap">
+        <div class="score-ring">
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle class="track" cx="24" cy="24" r="20"/>
+            <circle class="${fc}" cx="24" cy="24" r="20" fill="none" stroke-width="4" stroke-linecap="round"
+              stroke-dasharray="${circ}" stroke-dashoffset="${off}"/>
+          </svg>
+          <span class="score-num">${c.score}</span>
+        </div>
+        <span class="verdict ${vc}">${esc(c.verdict)}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      ${c.summary ? `<p class="card-summary">${esc(c.summary)}</p>` : ''}
+      <div class="rg">
+        <div class="rg-col"><div class="rg-label">✓ Strengths</div><ul class="bullets">${(c.match_reasons||[]).map(r=>`<li>${esc(r)}</li>`).join('')}</ul></div>
+        ${(c.gaps||[]).length ? `<div class="rg-col"><div class="rg-label">△ Gaps</div><ul class="bullets">${c.gaps.map(g=>`<li>${esc(g)}</li>`).join('')}</ul></div>` : ''}
+      </div>
+      ${(c.skills||[]).length ? `<div class="tags">${c.skills.slice(0,10).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div>` : ''}
+      <div class="card-footer">
+        <button class="dd-btn" onclick="openDD('${c.id}',event)">🔍 Deep Dive</button>
+        ${c.email||c.phone ? `<span style="font-size:11px;color:var(--muted);align-self:center">${[c.email,c.phone].filter(Boolean).join(' · ')}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Conversation ───────────────────────────────────────────────────────────
+function renderConvHistory() {
+  const el = document.getElementById('chat-history');
+  if (!convHistory.length) { el.innerHTML = '<p class="empty-state">Search history will appear here.</p>'; return; }
+  el.innerHTML = convHistory.slice(-8).map(m => `
+    <div class="chat-turn ${m.role}">
+      <div class="chat-lbl">${m.role === 'user' ? 'You' : 'AI'}</div>${esc(m.text)}
+    </div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function resetConversation() {
+  await api('POST', '/api/reset-conversation');
+  convTurns = 0; convHistory = [];
+  renderConvHistory();
+  document.getElementById('conv-bar').style.display = 'none';
+  toast('Conversation reset.', 'success');
+}
+
+// ── Export ─────────────────────────────────────────────────────────────────
+async function exportResults(type) {
+  if (!currentResults.length) { toast('No results to export.', 'error'); return; }
+  try {
+    const res = await fetch(`/api/export/${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ results: currentResults, query: currentQuery }),
+    });
+    if (!res.ok) { const d = await res.json(); toast(d.error || 'Export failed', 'error'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `talentmatch-${type === 'csv' ? 'shortlist.csv' : 'report.pdf'}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`${type.toUpperCase()} downloaded.`, 'success');
+  } catch(e) { toast('Export error: ' + e.message, 'error'); }
+}
+
+// ── Save search ────────────────────────────────────────────────────────────
+function saveCurrentSearch() {
+  if (!currentResults.length) { toast('Run a search first.', 'error'); return; }
+  document.getElementById('save-name').value = '';
+  document.getElementById('save-modal').classList.add('open');
+  setTimeout(() => document.getElementById('save-name').focus(), 100);
+}
+function closeSaveModal() { document.getElementById('save-modal').classList.remove('open'); }
+async function confirmSave() {
+  const name = document.getElementById('save-name').value.trim();
+  if (!name) { toast('Please enter a name.', 'error'); return; }
+  await api('POST', '/api/saved-searches', { name, query: currentQuery, results: currentResults });
+  closeSaveModal();
+  toast(`Search "${name}" saved.`, 'success');
+  refreshSaved();
+}
+
+async function refreshSaved() {
+  const data = await api('GET', '/api/saved-searches');
+  if (!data) return;
+  const el = document.getElementById('saved-list');
+  if (!data.length) { el.innerHTML = '<p class="empty-state">No saved searches yet. Run a search and click 🔖 Save Search.</p>'; return; }
+  el.innerHTML = data.map(s => `
+    <div class="saved-card">
+      <div class="saved-info">
+        <div class="saved-name">${esc(s.name)}</div>
+        <div class="saved-query">"${esc(s.query)}"</div>
+        <div class="saved-meta">Last run: ${new Date(s.lastRunAt).toLocaleDateString()} · ${s.results?.length || 0} candidates</div>
+      </div>
+      <div class="saved-actions">
+        <button class="btn-ghost" onclick="runSavedSearch('${s.id}')">▶ Run</button>
+        <button class="btn-danger" onclick="deleteSaved('${s.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function runSavedSearch(id) {
+  switchTab('search');
+  document.getElementById('search-welcome').style.display = 'none';
+  document.getElementById('search-loading').style.display = '';
+  document.getElementById('search-results').style.display = 'none';
+
+  const data = await api('POST', `/api/saved-searches/${id}/run`);
+  document.getElementById('search-loading').style.display = 'none';
+  if (!data) return;
+
+  currentResults = data.results;
+  currentQuery = data.query;
+  document.getElementById('search-input').value = data.query;
+  document.getElementById('res-count').textContent = data.results.length;
+  document.getElementById('res-query').textContent = `"${data.query}"`;
+  document.getElementById('results-list').innerHTML = data.results.map((c, i) => buildCard(c, i)).join('');
+  document.getElementById('search-results').style.display = '';
+  toast('Search re-run successfully.', 'success');
+}
+
+async function deleteSaved(id) {
+  await api('DELETE', `/api/saved-searches/${id}`);
+  refreshSaved();
+  toast('Saved search deleted.', 'success');
+}
+
+// ── JD Library ─────────────────────────────────────────────────────────────
+function openJDBuilder() { document.getElementById('jd-modal').classList.add('open'); setTimeout(() => document.getElementById('jd-desc').focus(), 100); }
+function closeJDBuilder() { document.getElementById('jd-modal').classList.remove('open'); document.getElementById('jd-desc').value = ''; }
+
+async function buildJD() {
+  const desc = document.getElementById('jd-desc').value.trim();
+  if (!desc) { toast('Please describe the role.', 'error'); return; }
+  const btn = document.getElementById('jd-build-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Building…';
+  const data = await api('POST', '/api/jds/build', { description: desc });
+  btn.disabled = false; btn.textContent = '✨ Build JD';
+  if (!data) return;
+  closeJDBuilder();
+  toast(`JD "${data.title}" created.`, 'success');
+  refreshJDs();
+}
+
+async function refreshJDs() {
+  const data = await api('GET', '/api/jds');
+  if (!data) return;
+  window._jds = data;
+
+  // Refresh JD dropdown in search
+  const sel = document.getElementById('jd-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Or search using a saved JD —</option>' +
+    data.map(j => `<option value="${j.id}">${esc(j.title)}</option>`).join('');
+  if (cur) sel.value = cur;
+
+  const el = document.getElementById('jd-list');
+  if (!data.length) { el.innerHTML = '<p class="empty-state">No JDs yet. Click + New JD to build one.</p>'; return; }
+  el.innerHTML = data.map(jd => `
+    <div class="jd-card">
+      <div class="jd-card-top">
+        <div>
+          <div class="jd-title">${esc(jd.title)}</div>
+          <div class="jd-meta">${jd.seniority || ''} · Min ${jd.min_experience_years || '?'} yrs · Created ${new Date(jd.createdAt).toLocaleDateString()}</div>
+        </div>
+        <div class="jd-actions">
+          <button class="btn-ghost" onclick="useJDForSearch('${jd.id}')">🔍 Search</button>
+          <button class="btn-danger" onclick="deleteJD('${jd.id}')">✕</button>
+        </div>
+      </div>
+      ${jd.required_skills?.length ? `<div class="jd-skills">
+        ${(jd.required_skills||[]).map(s=>`<span class="jd-skill">${esc(s)}</span>`).join('')}
+        ${(jd.nice_to_have||[]).map(s=>`<span class="jd-skill nice">${esc(s)}</span>`).join('')}
+      </div>` : ''}
+      ${jd.summary ? `<p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">${esc(jd.summary)}</p>` : ''}
+    </div>`).join('');
+}
+
+function useJDForSearch(id) {
+  const jd = (window._jds || []).find(j => j.id === id);
+  if (!jd) return;
+  document.getElementById('search-input').value = jd.summary || jd.title;
+  document.getElementById('jd-select').value = id;
+  switchTab('search');
+  doSearch();
+}
+
+async function deleteJD(id) {
+  await api('DELETE', `/api/jds/${id}`);
+  refreshJDs();
+  toast('JD deleted.', 'success');
+}
+
+// ── CSV Import ─────────────────────────────────────────────────────────────
+async function importCSV(file) {
+  if (!file) return;
+  const status = document.getElementById('import-status');
+  status.style.display = '';
+  status.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><span class="spinner dark"></span> Importing…</div>';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  const data = await api('POST', '/api/import/csv', fd, true);
+  document.getElementById('csv-input').value = '';
+
+  if (!data) { status.innerHTML = '<span style="color:var(--danger)">Import failed.</span>'; return; }
+  status.innerHTML = `<span style="color:var(--success)">✓ ${data.message}</span>`;
+  toast(data.message, 'success');
+  updateCandPill(data.candidateCount);
+  refreshCandidates();
+}
+
+// ── Deep Dive ──────────────────────────────────────────────────────────────
+function openDD(id, e) {
+  e.stopPropagation();
+  const c = currentResults.find(r => r.id === id);
+  if (!c) return;
+  activeDD = c;
+  document.getElementById('dd-name').textContent = c.name || c.fileName;
+  document.getElementById('dd-title').textContent = c.title || '';
+  document.getElementById('dd-chat').innerHTML = `<div class="dd-msg assistant">Ask me anything about <strong>${esc(c.name || 'this candidate')}</strong>.<br><br>Try: "What are their biggest achievements?" or "Do they have leadership experience?"</div>`;
+  document.getElementById('dd-panel').classList.add('open');
+  document.getElementById('dd-input').focus();
+}
+function closeDD() { document.getElementById('dd-panel').classList.remove('open'); activeDD = null; }
+
+async function sendDD() {
+  if (!activeDD) return;
+  const input = document.getElementById('dd-input');
+  const q = input.value.trim();
+  if (!q) return;
+  const chat = document.getElementById('dd-chat');
+  const btn = document.getElementById('dd-send');
+  chat.innerHTML += `<div class="dd-msg user">${esc(q)}</div>`;
+  input.value = ''; btn.disabled = true;
+  const lid = 'l' + Date.now();
+  chat.innerHTML += `<div class="dd-msg assistant" id="${lid}"><span class="spinner dark"></span></div>`;
+  chat.scrollTop = chat.scrollHeight;
+  const data = await api('POST', '/api/deepdive', { candidateId: activeDD.id, question: q });
+  document.getElementById(lid)?.remove();
+  btn.disabled = false;
+  chat.innerHTML += `<div class="dd-msg assistant">${esc(data?.answer || 'Could not get answer.')}</div>`;
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, type = '') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+async function api(method, url, body, isFormData) {
+  try {
+    const opts = { method };
+    if (body) {
+      if (isFormData) { opts.body = body; }
+      else { opts.headers = { 'Content-Type': 'application/json' }; opts.body = JSON.stringify(body); }
+    }
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || 'Request failed', 'error'); return null; }
+    return data;
+  } catch (e) { toast('Network error: ' + e.message, 'error'); return null; }
+}
+</script>
+</body>
+</html>
