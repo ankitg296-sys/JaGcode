@@ -90,7 +90,7 @@ Rank ALL ${candidates.length} candidates against this requirement. Return the JS
 
   let ranked;
   try {
-    ranked = await chatJSON(messages, { max_tokens: 2000 });
+    ranked = await chatJSON(messages, { max_tokens: 2000, temperature: 0 });
   } catch (err) {
     throw new Error(`Ranking failed: ${err.message}`);
   }

@@ -53,7 +53,7 @@ async function rankCandidates(allCandidates, query, conversationHistory = []) {
 
   const ranked = await chatJSON(
     [{ role: "system", content: RANKING_SYSTEM_PROMPT }, { role: "user", content: userMsg }],
-    { max_tokens: 2000 }
+    { max_tokens: 2000, temperature: 0 }
   );
 
   if (!Array.isArray(ranked)) throw new Error("Ranking returned unexpected format");
