@@ -535,6 +535,68 @@ app.post("/api/candidate/chat", requireAuth, requireRole("candidate"), async (re
   }
 });
 
+// ── Candidate: submit profile to recruiter talent pool ───────────────────────
+app.post("/api/candidate/submit-to-pool", requireAuth, requireRole("candidate"), (req, res) => {
+  const metaCV = getMetaCVByUserId(req.user.id);
+  if (!metaCV) return res.status(400).json({ error: "No profile found. Build your profile first." });
+
+  const candidateId = metaCV.poolCandidateId || uuidv4();
+
+  // Build rawText for TF-IDF pre-filter to work on this candidate
+  const rawText = [
+    `${metaCV.name} — ${metaCV.title || ""}`,
+    metaCV.summary || "",
+    `Skills: ${(metaCV.skills || []).join(", ")}`,
+    `Industries: ${(metaCV.industries || []).join(", ")}`,
+    `Target roles: ${(metaCV.preferredRoles || []).join(", ")}`,
+    (metaCV.experience || []).map(e => `${e.title} at ${e.company}. ${e.summary || ""}`).join(" "),
+    (metaCV.education || []).map(e => `${e.degree} from ${e.institution}`).join(". "),
+  ].join("\n");
+
+  const candidateRecord = {
+    id: candidateId,
+    fileName: `${metaCV.name || req.user.name} (Candidate Portal)`,
+    filePath: null,
+    rawText,
+    source: "candidate_portal",
+    _parsedAt: new Date().toISOString(),
+    name: metaCV.name || req.user.name,
+    title: metaCV.title || null,
+    email: req.user.email,
+    phone: metaCV.phone || null,
+    location: metaCV.location || null,
+    total_experience_years: metaCV.total_experience_years ?? null,
+    current_company: metaCV.experience?.[0]?.company || null,
+    skills: metaCV.skills || [],
+    industries: metaCV.industries || [],
+    education: metaCV.education || [],
+    experience: metaCV.experience || [],
+    summary: metaCV.summary || null,
+    preferredRoles: metaCV.preferredRoles || [],
+  };
+
+  saveCandidate(candidateRecord);
+
+  // Mark the metaCV as submitted so candidate can see the status
+  metaCV.poolCandidateId = candidateId;
+  metaCV.submittedToPool = true;
+  metaCV.submittedAt = new Date().toISOString();
+  saveMetaCV(metaCV);
+
+  console.log(`[Pool] ${req.user.name} submitted profile to recruiter pool`);
+  res.json({ success: true, candidateId, submittedAt: metaCV.submittedAt });
+});
+
+// ── Candidate: check pool submission status ───────────────────────────────────
+app.get("/api/candidate/pool-status", requireAuth, requireRole("candidate"), (req, res) => {
+  const metaCV = getMetaCVByUserId(req.user.id);
+  res.json({
+    submitted: !!metaCV?.submittedToPool,
+    submittedAt: metaCV?.submittedAt || null,
+    candidateId: metaCV?.poolCandidateId || null,
+  });
+});
+
 // ── Candidate: download their profile as a PDF ───────────────────────────────
 app.get("/api/candidate/download-profile", requireAuth, requireRole("candidate"), (req, res) => {
   const metaCV = getMetaCVByUserId(req.user.id);

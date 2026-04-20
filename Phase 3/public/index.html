@@ -734,10 +734,22 @@
               <div id="pp-experience"></div>
             </div>
             <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+
+              <!-- Submit to recruiter pool -->
+              <div id="pool-status-bar" style="display:none;background:rgba(16,185,129,.1);border:1px solid var(--success);border-radius:8px;padding:8px 12px;font-size:.8rem;color:var(--success);display:flex;align-items:center;gap:6px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="pool-status-text">Visible to recruiters</span>
+              </div>
+              <button class="btn btn-accent" id="btn-submit-pool" onclick="submitToPool()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span id="pool-btn-label">Submit Profile to Recruiter Pool</span>
+              </button>
+
               <button class="btn btn-outline" onclick="downloadProfile()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download Profile PDF
               </button>
+
               <div id="pp-save-row" style="display:none;">
                 <button class="btn btn-accent" onclick="saveProfileManual()" style="width:100%;">Save Changes</button>
               </div>
@@ -1365,6 +1377,7 @@ async function loadMyProfile() {
     if (metaCV) {
       metaCVData = metaCV;
       renderProfilePanel();
+      loadPoolStatus();
       appendMsg("assistant", `Welcome back! Your profile is loaded — **${(metaCVData.skills || []).length} skills** listed, title: **${metaCVData.title || "not set"}**.\n\nTell me what to update, or upload a new CV to refresh everything.`);
       hideCVDropHint();
     } else {
@@ -1566,6 +1579,46 @@ async function saveProfileManual() {
   const row = document.getElementById("pp-save-row");
   if (row) row.style.display = "none";
   toast("Profile saved.", "ok");
+}
+
+async function loadPoolStatus() {
+  try {
+    const r = await api("GET", "/api/candidate/pool-status");
+    renderPoolStatus(r);
+  } catch {}
+}
+
+function renderPoolStatus(status) {
+  const bar = document.getElementById("pool-status-bar");
+  const btnLabel = document.getElementById("pool-btn-label");
+  if (!bar || !btnLabel) return;
+  if (status.submitted) {
+    bar.style.display = "flex";
+    const when = status.submittedAt
+      ? new Date(status.submittedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+      : "";
+    document.getElementById("pool-status-text").textContent = `Visible to recruiters · Last updated ${when}`;
+    btnLabel.textContent = "Update in Recruiter Pool";
+  } else {
+    bar.style.display = "none";
+    btnLabel.textContent = "Submit Profile to Recruiter Pool";
+  }
+}
+
+async function submitToPool() {
+  if (!metaCVData) return toast("Build your profile first.", "err");
+  const btn = document.getElementById("btn-submit-pool");
+  btn.disabled = true;
+  try {
+    const r = await api("POST", "/api/candidate/submit-to-pool");
+    renderPoolStatus({ submitted: true, submittedAt: r.submittedAt });
+    appendMsg("assistant", "Your profile has been submitted to the recruiter talent pool. Recruiters can now find and rank you against open roles.");
+    toast("Profile submitted to recruiter pool.", "ok");
+  } catch (e) {
+    toast("Failed: " + e.message, "err");
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function downloadProfile() {
