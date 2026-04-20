@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TalentMatch AI v3</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+    --accent: #6366f1; --accent2: #818cf8;
+    --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    --text: #f1f5f9; --muted: #64748b; --border: #2d3348;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+
+  /* ── Auth Screen ── */
+  #auth-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+  }
+  .auth-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 40px; width: 100%; max-width: 420px;
+  }
+  .auth-logo { text-align: center; margin-bottom: 32px; }
+  .auth-logo h1 { font-size: 1.8rem; color: var(--accent2); }
+  .auth-logo p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+  .auth-tabs { display: flex; border-radius: 8px; background: var(--surface2); padding: 4px; margin-bottom: 28px; }
+  .auth-tab { flex: 1; padding: 8px; text-align: center; cursor: pointer; border-radius: 6px; font-size: 0.9rem; color: var(--muted); transition: all .2s; }
+  .auth-tab.active { background: var(--accent); color: #fff; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 0.95rem; outline: none;
+    transition: border-color .2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .role-select { display: flex; gap: 10px; margin-bottom: 16px; }
+  .role-btn {
+    flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 10px;
+    background: var(--bg); cursor: pointer; text-align: center; transition: all .2s; color: var(--text);
+  }
+  .role-btn .role-icon { font-size: 1.5rem; margin-bottom: 4px; }
+  .role-btn .role-label { font-size: 0.85rem; font-weight: 600; }
+  .role-btn .role-desc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+  .role-btn.selected { border-color: var(--accent); background: rgba(99,102,241,.1); }
+  .btn-primary {
+    width: 100%; padding: 12px; background: var(--accent); color: #fff;
+    border: none; border-radius: 8px; font-size: 1rem; font-weight: 600;
+    cursor: pointer; transition: background .2s; margin-top: 8px;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled { opacity: .5; cursor: default; }
+  .auth-error { background: rgba(239,68,68,.1); border: 1px solid var(--danger); color: var(--danger); padding: 10px 14px; border-radius: 8px; font-size: 0.875rem; margin-bottom: 16px; display: none; }
+
+  /* ── Main App ── */
+  #app-screen { display: none; flex-direction: column; min-height: 100vh; }
+
+  /* Topbar */
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 24px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-brand { font-size: 1.1rem; font-weight: 700; color: var(--accent2); }
+  .topbar-brand span { color: var(--muted); font-weight: 400; font-size: 0.8rem; margin-left: 8px; }
+  .topbar-user { display: flex; align-items: center; gap: 12px; }
+  .user-badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;
+  }
+  .role-tag {
+    font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .role-recruiter { background: rgba(99,102,241,.2); color: var(--accent2); }
+  .role-candidate { background: rgba(16,185,129,.2); color: var(--success); }
+  .btn-logout {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: all .2s;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* Tabs */
+  .tabs-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 24px; display: flex; gap: 4px; overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 14px 18px; background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 0.9rem; white-space: nowrap; border-bottom: 2px solid transparent;
+    transition: all .2s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+  /* Main content */
+  .main-content { flex: 1; padding: 28px 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── Common Components ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+  }
+  .card h3 { font-size: 1rem; color: var(--accent2); margin-bottom: 14px; }
+  .section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; }
+  .section-subtitle { color: var(--muted); font-size: 0.875rem; margin-top: 4px; margin-bottom: 20px; }
+
+  textarea, input[type="text"], input[type="email"], input[type="password"] {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 10px 14px; font-size: 0.95rem; width: 100%;
+    outline: none; transition: border-color .2s; resize: vertical; font-family: inherit;
+  }
+  textarea:focus, input[type="text"]:focus, input[type="email"]:focus { border-color: var(--accent); }
+  button { font-family: inherit; }
+
+  .btn {
+    padding: 9px 18px; border-radius: 8px; font-size: 0.875rem; font-weight: 600;
+    cursor: pointer; transition: all .2s; border: none;
+  }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover { background: var(--accent2); }
+  .btn-accent:disabled { opacity: .5; cursor: default; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent2); }
+  .btn-danger { background: transparent; border: 1px solid transparent; color: var(--muted); }
+  .btn-danger:hover { color: var(--danger); }
+
+  .status-bar {
+    display: flex; gap: 24px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 20px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .stat { font-size: 0.875rem; color: var(--muted); }
+  .stat strong { color: var(--text); font-size: 1rem; }
+  .indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-right: 6px; }
+  .indicator.red { background: var(--danger); }
+
+  /* Upload zone */
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 48px 20px; text-align: center; cursor: pointer;
+    transition: all .2s; margin-bottom: 16px; background: var(--bg);
+  }
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(99,102,241,.05); }
+  .drop-zone .dz-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .drop-zone p { color: var(--muted); font-size: 0.9rem; }
+  .drop-zone p strong { color: var(--text); }
+  #file-input { display: none; }
+  .upload-progress { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .prog-item { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; padding: 6px 10px; background: var(--surface2); border-radius: 6px; }
+  .prog-item .pi-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pi-ok { color: var(--success); } .pi-fail { color: var(--danger); }
+
+  /* Search */
+  .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  .search-row input { flex: 1; }
+
+  /* Results */
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px; margin-bottom: 12px; position: relative; transition: border-color .2s;
+  }
+  .result-card:hover { border-color: var(--accent); }
+  .rc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .rc-rank { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; }
+  .rc-rank.rank2 { background: #475569; } .rc-rank.rank3 { background: #334155; }
+  .rc-name { font-size: 1.05rem; font-weight: 700; }
+  .rc-sub { color: var(--muted); font-size: 0.83rem; margin-top: 3px; }
+  .rc-score { text-align: right; flex-shrink: 0; }
+  .score-circle {
+    width: 52px; height: 52px; border-radius: 50%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;
+    border: 3px solid;
+  }
+  .score-hi { border-color: var(--success); color: var(--success); }
+  .score-mid { border-color: var(--warning); color: var(--warning); }
+  .score-lo { border-color: var(--danger); color: var(--danger); }
+  .verdict-tag {
+    font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+    display: inline-block; margin-top: 3px; text-transform: uppercase; letter-spacing: .4px;
+  }
+  .vt-strong { background: rgba(16,185,129,.15); color: var(--success); }
+  .vt-good { background: rgba(99,102,241,.15); color: var(--accent2); }
+  .vt-partial { background: rgba(245,158,11,.15); color: var(--warning); }
+  .vt-weak, .vt-no { background: rgba(239,68,68,.15); color: var(--danger); }
+  .rc-body { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .rc-bullets { display: flex; gap: 20px; flex-wrap: wrap; }
+  .rc-col { flex: 1; min-width: 200px; }
+  .rc-col-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 5px; font-weight: 700; }
+  .rc-col ul { list-style: none; }
+  .rc-col li { font-size: 0.85rem; color: var(--text); padding: 2px 0; }
+  .rc-col li::before { content: "• "; color: var(--accent); }
+  .rc-col.gaps li::before { color: var(--warning); }
+  .skills-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .skill-chip { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: 0.78rem; padding: 3px 10px; border-radius: 20px; }
+  .rc-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+
+  /* Deep Dive panel */
+  .deepdive-panel {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-top: 14px;
+  }
+  .deepdive-panel h4 { color: var(--accent2); margin-bottom: 10px; font-size: 0.9rem; }
+  .dd-row { display: flex; gap: 8px; }
+  .dd-answer { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.875rem; line-height: 1.6; margin-top: 10px; white-space: pre-wrap; }
+
+  /* Saved searches */
+  .saved-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 10px; transition: border-color .2s;
+  }
+  .saved-card:hover { border-color: var(--accent); }
+  .sc-meta { flex: 1; }
+  .sc-name { font-weight: 700; }
+  .sc-query { color: var(--muted); font-size: 0.83rem; margin-top: 3px; font-style: italic; }
+  .sc-info { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  .sc-actions { display: flex; gap: 6px; }
+
+  /* JD cards */
+  .jd-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px; margin-bottom: 10px; transition: border-color .2s;
+  }
+  .jd-card:hover { border-color: var(--accent); }
+  .jd-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .jd-title { font-weight: 700; font-size: 1rem; }
+  .jd-seniority { background: rgba(99,102,241,.15); color: var(--accent2); font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; }
+  .jd-body { margin-top: 10px; color: var(--muted); font-size: 0.875rem; line-height: 1.5; }
+  .jd-skills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .skill-required { background: rgba(99,102,241,.15); color: var(--accent2); }
+  .skill-nice { background: var(--surface2); color: var(--muted); }
+
+  /* Pipeline/Kanban */
+  .kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 16px; }
+  .kanban-col {
+    min-width: 200px; flex: 1; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 14px;
+  }
+  .kanban-col-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .kanban-card {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; margin-bottom: 8px; cursor: grab;
+  }
+  .kanban-card:hover { border-color: var(--accent); }
+  .kc-name { font-weight: 600; font-size: 0.875rem; }
+  .kc-title { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+  .kc-actions { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .stage-pill { font-size: 0.7rem; padding: 1px 6px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--muted); }
+  .stage-pill:hover { border-color: var(--accent); color: var(--accent2); }
+
+  /* Gap Analysis */
+  .gap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
+  .gap-item {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+  }
+  .gap-area { font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+  .gap-severity { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; display: inline-block; margin-bottom: 8px; }
+  .sev-critical { background: rgba(239,68,68,.15); color: var(--danger); }
+  .sev-important { background: rgba(245,158,11,.15); color: var(--warning); }
+  .sev-minor { background: rgba(16,185,129,.15); color: var(--success); }
+  .gap-desc { font-size: 0.83rem; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+  .gap-rec { font-size: 0.83rem; color: var(--accent2); background: rgba(99,102,241,.1); padding: 8px; border-radius: 6px; }
+  .gap-rec::before { content: "→ "; }
+  .readiness-bar { height: 8px; border-radius: 4px; background: var(--surface2); margin: 12px 0; overflow: hidden; }
+  .readiness-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--success)); transition: width .5s; }
+  .analysis-header { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+  .ah-score { font-size: 2.5rem; font-weight: 700; color: var(--accent2); }
+  .ah-verdict { font-size: 1rem; font-weight: 600; color: var(--text); }
+  .ah-timeline { font-size: 0.85rem; color: var(--muted); }
+  .top-rec { background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.3); border-radius: 8px; padding: 14px; margin-bottom: 20px; }
+  .top-rec-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent); margin-bottom: 4px; }
+  .top-rec-text { font-size: 0.925rem; color: var(--text); }
+
+  /* Profile / Meta CV */
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .profile-grid { grid-template-columns: 1fr; } }
+  .profile-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .profile-section h4 { color: var(--accent2); font-size: 0.875rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .skills-editor { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .skill-editable { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; }
+  .skill-remove { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
+  .skill-remove:hover { color: var(--danger); }
+  .add-skill-row { display: flex; gap: 8px; margin-top: 8px; }
+  .add-skill-row input { flex: 1; }
+
+  /* Match Results (candidate) */
+  .match-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 20px; margin-bottom: 12px; display: flex; gap: 16px; align-items: flex-start;
+    transition: border-color .2s; cursor: pointer;
+  }
+  .match-card:hover { border-color: var(--accent); }
+  .match-score-badge {
+    width: 56px; height: 56px; border-radius: 50%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;
+    flex-shrink: 0; border: 3px solid;
+  }
+  .match-body { flex: 1; }
+  .match-title { font-weight: 700; font-size: 1rem; }
+  .match-meta { color: var(--muted); font-size: 0.83rem; margin-top: 3px; }
+  .match-fit { margin-top: 10px; }
+  .fit-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 4px; font-weight: 700; }
+  .fit-items { display: flex; flex-direction: column; gap: 3px; }
+  .fit-item { font-size: 0.85rem; color: var(--text); }
+  .fit-item::before { content: "✓ "; color: var(--success); }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--surface2);
+    border: 1px solid var(--border); padding: 12px 18px; border-radius: 10px;
+    font-size: 0.875rem; z-index: 9999; display: none; max-width: 320px;
+    animation: slideUp .3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .toast-ok { border-color: var(--success); color: var(--success); }
+  .toast-err { border-color: var(--danger); color: var(--danger); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none;
+    align-items: center; justify-content: center; z-index: 500; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 1.1rem; margin-bottom: 18px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* Loading */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state { text-align: center; padding: 40px; color: var(--muted); }
+  .loading-state .spinner { width: 32px; height: 32px; margin-bottom: 16px; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.95rem; }
+
+  select {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 12px; font-size: 0.875rem; outline: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════ AUTH SCREEN ════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <h1>TalentMatch AI</h1>
+      <p>Two-sided talent platform — Phase 3</p>
+    </div>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">Create Account</div>
+    </div>
+
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@company.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <button class="btn-primary" id="btn-login" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- Register form -->
+    <div id="form-register" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="Ankit Gupta" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@company.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min 6 characters" />
+      </div>
+      <div class="form-group">
+        <label>I am a...</label>
+        <div class="role-select">
+          <div class="role-btn selected" id="role-recruiter" onclick="selectRole('recruiter')">
+            <div class="role-icon">🔍</div>
+            <div class="role-label">Recruiter</div>
+            <div class="role-desc">Search & rank candidates</div>
+          </div>
+          <div class="role-btn" id="role-candidate" onclick="selectRole('candidate')">
+            <div class="role-icon">👤</div>
+            <div class="role-label">Candidate</div>
+            <div class="role-desc">Find matching roles</div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" id="btn-register" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ MAIN APP ════════════════════════ -->
+<div id="app-screen">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-brand">TalentMatch AI <span>v3</span></div>
+    <div class="topbar-user">
+      <div class="user-badge">
+        <span id="user-name-display">—</span>
+        <span id="user-role-tag" class="role-tag"></span>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- Tabs (dynamically populated) -->
+  <div class="tabs-bar" id="tabs-bar"></div>
+
+  <!-- Content -->
+  <div class="main-content">
+
+    <!-- ── RECRUITER TABS ── -->
+
+    <!-- Dashboard -->
+    <div class="tab-pane" id="tab-dashboard">
+      <div class="section-title">Pipeline Dashboard</div>
+      <p class="section-subtitle">Drag candidates across stages to track your hiring pipeline.</p>
+      <div id="pipeline-status" class="status-bar" style="display:none"></div>
+      <div class="card">
+        <h3>Add to Pipeline</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="flex:1;min-width:180px;">
+            <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:6px;">Candidate</label>
+            <select id="pipeline-candidate-select" style="width:100%"><option value="">Select candidate…</option></select>
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:6px;">JD (optional)</label>
+            <select id="pipeline-jd-select" style="width:100%"><option value="">No specific JD</option></select>
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:6px;">Stage</label>
+            <select id="pipeline-stage-select" style="width:100%">
+              <option value="applied">Applied</option>
+              <option value="screening">Screening</option>
+              <option value="interview">Interview</option>
+              <option value="offer">Offer</option>
+              <option value="hired">Hired</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <button class="btn btn-accent" onclick="addToPipeline()">Add</button>
+        </div>
+      </div>
+      <div id="kanban-board" class="kanban"></div>
+    </div>
+
+    <!-- Upload -->
+    <div class="tab-pane" id="tab-upload">
+      <div class="section-title">Upload Candidate CVs</div>
+      <div id="rec-status-bar" class="status-bar">
+        <div class="stat"><span class="indicator" id="api-indicator"></span><strong id="stat-candidates">0</strong> Candidates</div>
+        <div class="stat">Model: <strong id="stat-model">—</strong></div>
+        <div class="stat">Conversation: <strong id="stat-turns">0</strong> turns</div>
+      </div>
+
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="dz-icon">📂</div>
+        <p><strong>Click or drag & drop CVs here</strong></p>
+        <p>PDF and DOCX supported · Up to 100 files · 20MB each</p>
+      </div>
+      <input type="file" id="file-input" multiple accept=".pdf,.docx" onchange="handleFiles(this.files)" />
+      <div id="upload-progress" class="upload-progress"></div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Uploaded Candidates</h3>
+        <div id="candidates-list">
+          <div class="loading-state"><div class="spinner"></div><p>Loading…</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="tab-pane active" id="tab-search">
+      <div class="section-title">Search Candidates</div>
+      <div class="search-row">
+        <input type="text" id="search-input" placeholder="e.g. Senior HR manager with 5+ years recruitment experience" onkeydown="if(event.key==='Enter')doSearch()" />
+        <button class="btn btn-accent" id="btn-search" onclick="doSearch()">Search</button>
+        <button class="btn btn-outline" onclick="resetConversation()" title="Reset context">↺</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+        <select id="jd-search-select" style="min-width:200px;"><option value="">Use a saved JD…</option></select>
+        <button class="btn btn-outline" onclick="searchFromJD()">Use Selected JD</button>
+        <button class="btn btn-outline" id="btn-save-search" onclick="openSaveSearchModal()" style="margin-left:auto">Save Search</button>
+      </div>
+      <div id="search-results"></div>
+    </div>
+
+    <!-- Saved Searches -->
+    <div class="tab-pane" id="tab-saved">
+      <div class="section-title">Saved Searches</div>
+      <div id="saved-searches-list"></div>
+    </div>
+
+    <!-- JD Library -->
+    <div class="tab-pane" id="tab-jd-library">
+      <div class="section-title">Job Description Library</div>
+      <div class="card">
+        <h3>Build a JD with AI</h3>
+        <textarea id="jd-description" rows="4" placeholder="Describe the role in plain English — e.g. 'Looking for a senior backend engineer with 5+ years in Node.js and AWS, who has led a team before and worked in fintech'"></textarea>
+        <div style="margin-top:10px;display:flex;gap:10px;">
+          <button class="btn btn-accent" id="btn-build-jd" onclick="buildJD()">Build JD</button>
+          <span id="jd-loading" style="display:none;align-items:center;gap:8px;color:var(--muted);font-size:.875rem;"><span class="spinner"></span> Building…</span>
+        </div>
+      </div>
+      <div id="jd-library-list"></div>
+    </div>
+
+    <!-- CSV Import -->
+    <div class="tab-pane" id="tab-import">
+      <div class="section-title">ATS CSV Import</div>
+      <div class="card">
+        <h3>Import from ATS (Greenhouse, Lever, etc.)</h3>
+        <p style="color:var(--muted);font-size:.875rem;margin-bottom:14px;">CSV should have headers like: name, email, phone, title, location, skills, summary, experience_years.</p>
+        <div class="drop-zone" id="csv-drop-zone" onclick="document.getElementById('csv-input').click()">
+          <div class="dz-icon">📋</div>
+          <p><strong>Click to select CSV file</strong></p>
+        </div>
+        <input type="file" id="csv-input" accept=".csv" onchange="importCSV(this.files[0])" style="display:none" />
+        <div id="import-result" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- ── CANDIDATE TABS ── -->
+
+    <!-- My Profile -->
+    <div class="tab-pane" id="tab-profile">
+      <div class="section-title">My Profile</div>
+      <div class="card">
+        <h3>Build Profile with AI</h3>
+        <p style="color:var(--muted);font-size:.875rem;margin-bottom:10px;">Describe your background and career goals in plain English.</p>
+        <textarea id="metacv-description" rows="4" placeholder="e.g. I'm a 6-year HR professional specialising in talent acquisition and L&D. I've hired for tech and fintech companies, led teams of 3, and I'm looking for senior HRBP or TA Lead roles…"></textarea>
+        <div style="margin-top:10px;display:flex;gap:10px;">
+          <button class="btn btn-accent" id="btn-build-metacv" onclick="buildMetaCV()">Build Profile</button>
+          <span id="metacv-loading" style="display:none;align-items:center;gap:8px;color:var(--muted);font-size:.875rem;"><span class="spinner"></span> Building…</span>
+        </div>
+      </div>
+      <div id="profile-view" style="display:none;">
+        <div class="profile-grid">
+          <div class="profile-section">
+            <h4>Basic Info</h4>
+            <div id="profile-basic"></div>
+          </div>
+          <div class="profile-section">
+            <h4>Skills</h4>
+            <div id="profile-skills"></div>
+            <div class="add-skill-row" style="margin-top:12px;">
+              <input type="text" id="new-skill-input" placeholder="Add skill…" onkeydown="if(event.key==='Enter')addSkill()" />
+              <button class="btn btn-outline" onclick="addSkill()">+</button>
+            </div>
+          </div>
+          <div class="profile-section" style="grid-column:span 2;">
+            <h4>Summary</h4>
+            <textarea id="profile-summary-edit" rows="3" onchange="markProfileDirty()"></textarea>
+          </div>
+          <div class="profile-section">
+            <h4>Industries</h4>
+            <div id="profile-industries"></div>
+          </div>
+          <div class="profile-section">
+            <h4>Target Roles</h4>
+            <div id="profile-preferred"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn btn-accent" id="btn-save-profile" onclick="saveProfile()" style="display:none;">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matched Roles -->
+    <div class="tab-pane" id="tab-matches">
+      <div class="section-title">Matched Roles</div>
+      <p class="section-subtitle">How well do you match open job descriptions? AI-powered matching against all available JDs.</p>
+      <button class="btn btn-accent" id="btn-match" onclick="doMatch()">Run Match</button>
+      <div id="match-results" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- Gap Analysis -->
+    <div class="tab-pane" id="tab-gap">
+      <div class="section-title">Gap Analysis</div>
+      <p class="section-subtitle">Select a role to see exactly what skills you need to develop — with a personalised action plan.</p>
+      <div style="display:flex;gap:12px;margin-bottom:20px;align-items:center;flex-wrap:wrap;">
+        <select id="gap-jd-select" style="min-width:220px;"><option value="">Select a role…</option></select>
+        <button class="btn btn-accent" id="btn-gap" onclick="doGapAnalysis()">Analyse Gaps</button>
+        <span id="gap-loading" style="display:none;align-items:center;gap:8px;color:var(--muted);font-size:.875rem;"><span class="spinner"></span> Analysing…</span>
+      </div>
+      <div id="gap-results"></div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-screen -->
+
+<!-- Modals -->
+<div class="modal-overlay" id="save-search-modal">
+  <div class="modal">
+    <h3>Save Search</h3>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="save-search-name" placeholder="e.g. Senior HR Manager" />
+    </div>
+    <div id="save-search-query-preview" style="font-size:.83rem;color:var(--muted);margin-top:4px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSaveSearchModal()">Cancel</button>
+      <button class="btn btn-accent" onclick="doSaveSearch()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+let token = localStorage.getItem("tm_token") || null;
+let currentUser = null;
+let lastSearchQuery = "";
+let lastSearchResults = [];
+let currentDeepDiveId = null;
+let metaCVData = null;
+let profileDirty = false;
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+window.addEventListener("DOMContentLoaded", async () => {
+  if (token) {
+    try {
+      const r = await api("GET", "/api/me");
+      currentUser = r;
+      showApp();
+    } catch {
+      token = null; localStorage.removeItem("tm_token");
+      showAuthScreen();
+    }
+  } else {
+    showAuthScreen();
+  }
+});
+
+function showAuthScreen() {
+  document.getElementById("auth-screen").style.display = "flex";
+  document.getElementById("app-screen").style.display = "none";
+}
+
+function showApp() {
+  document.getElementById("auth-screen").style.display = "none";
+  document.getElementById("app-screen").style.display = "flex";
+  document.getElementById("user-name-display").textContent = currentUser.name;
+  const tag = document.getElementById("user-role-tag");
+  tag.textContent = currentUser.role;
+  tag.className = `role-tag role-${currentUser.role}`;
+  buildTabs();
+  if (currentUser.role === "recruiter") {
+    loadStatus();
+    loadCandidatesList();
+    loadSavedSearches();
+    loadJDLibrary();
+    loadPipeline();
+  } else {
+    loadMyProfile();
+    loadJDsForCandidate();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════════
+const RECRUITER_TABS = [
+  { id: "dashboard", label: "📊 Dashboard" },
+  { id: "search", label: "🔍 Search" },
+  { id: "upload", label: "📂 Upload" },
+  { id: "saved", label: "🔖 Saved" },
+  { id: "jd-library", label: "📋 JD Library" },
+  { id: "import", label: "⬆ Import" },
+];
+const CANDIDATE_TABS = [
+  { id: "profile", label: "👤 My Profile" },
+  { id: "matches", label: "🎯 Matched Roles" },
+  { id: "gap", label: "📈 Gap Analysis" },
+];
+
+function buildTabs() {
+  const tabs = currentUser.role === "recruiter" ? RECRUITER_TABS : CANDIDATE_TABS;
+  const bar = document.getElementById("tabs-bar");
+  bar.innerHTML = tabs.map(t =>
+    `<button class="tab-btn" id="tabBtn-${t.id}" onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join("");
+  // default active tab
+  switchTab(tabs[0].id);
+}
+
+function switchTab(id) {
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  const pane = document.getElementById("tab-" + id);
+  const btn = document.getElementById("tabBtn-" + id);
+  if (pane) pane.classList.add("active");
+  if (btn) btn.classList.add("active");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════
+let selectedRole = "recruiter";
+
+function switchAuthTab(tab) {
+  document.querySelectorAll(".auth-tab").forEach((t, i) => t.classList.toggle("active", (i === 0) === (tab === "login")));
+  document.getElementById("form-login").style.display = tab === "login" ? "block" : "none";
+  document.getElementById("form-register").style.display = tab === "register" ? "block" : "none";
+  document.getElementById("auth-error").style.display = "none";
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById("role-recruiter").classList.toggle("selected", role === "recruiter");
+  document.getElementById("role-candidate").classList.toggle("selected", role === "candidate");
+}
+
+async function doLogin() {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  if (!email || !password) return showAuthError("Please enter email and password.");
+  const btn = document.getElementById("btn-login");
+  btn.disabled = true; btn.textContent = "Signing in…";
+  try {
+    const r = await apiFetch("POST", "/api/auth/login", { email, password });
+    if (r.error) throw new Error(r.error);
+    token = r.token; localStorage.setItem("tm_token", token);
+    currentUser = r.user;
+    showApp();
+  } catch (e) { showAuthError(e.message); }
+  finally { btn.disabled = false; btn.textContent = "Sign In"; }
+}
+
+async function doRegister() {
+  const name = document.getElementById("reg-name").value.trim();
+  const email = document.getElementById("reg-email").value.trim();
+  const password = document.getElementById("reg-password").value;
+  if (!name || !email || !password) return showAuthError("All fields are required.");
+  const btn = document.getElementById("btn-register");
+  btn.disabled = true; btn.textContent = "Creating…";
+  try {
+    const r = await apiFetch("POST", "/api/auth/register", { name, email, password, role: selectedRole });
+    if (r.error) throw new Error(r.error);
+    token = r.token; localStorage.setItem("tm_token", token);
+    currentUser = r.user;
+    showApp();
+  } catch (e) { showAuthError(e.message); }
+  finally { btn.disabled = false; btn.textContent = "Create Account"; }
+}
+
+function doLogout() {
+  token = null; currentUser = null;
+  localStorage.removeItem("tm_token");
+  location.reload();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById("auth-error");
+  el.textContent = msg; el.style.display = "block";
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STATUS (Recruiter)
+// ═══════════════════════════════════════════════════════════════════
+async function loadStatus() {
+  try {
+    const s = await api("GET", "/api/status");
+    document.getElementById("stat-candidates").textContent = s.candidateCount;
+    document.getElementById("stat-model").textContent = s.model.split("/").pop();
+    document.getElementById("stat-turns").textContent = s.conversationTurns;
+    const ind = document.getElementById("api-indicator");
+    ind.className = "indicator" + (s.ready ? "" : " red");
+    // populate pipeline selects
+    await populatePipelineSelects();
+    // populate JD search select
+    populateJDSelect();
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UPLOAD (Recruiter)
+// ═══════════════════════════════════════════════════════════════════
+const dropZone = document.getElementById("drop-zone");
+["dragover","dragenter"].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add("dragover"); }));
+["dragleave","drop"].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove("dragover"); }));
+dropZone.addEventListener("drop", e => handleFiles(e.dataTransfer.files));
+
+async function handleFiles(files) {
+  if (!files?.length) return;
+  const prog = document.getElementById("upload-progress");
+  prog.innerHTML = "";
+  const formData = new FormData();
+  Array.from(files).forEach(f => {
+    formData.append("files", f);
+    const item = document.createElement("div");
+    item.className = "prog-item";
+    item.id = "pi-" + f.name.replace(/\W/g, "_");
+    item.innerHTML = `<span class="spinner"></span><span class="pi-name">${f.name}</span>`;
+    prog.appendChild(item);
+  });
+
+  try {
+    const r = await apiFetch("POST", "/api/upload", formData, true);
+    (r.results || []).forEach(res => {
+      const el = document.getElementById("pi-" + res.fileName.replace(/\W/g, "_"));
+      if (el) el.innerHTML = `<span class="${res.success ? "pi-ok" : "pi-fail"}">${res.success ? "✓" : "✗"}</span><span class="pi-name">${res.fileName}</span><span style="color:var(--muted);font-size:.78rem">${res.success ? res.name || "" : res.error || ""}</span>`;
+    });
+    toast(`Parsed ${r.parsed} of ${r.results?.length || 0} CV(s).`, r.failed ? "err" : "ok");
+    loadCandidatesList();
+    loadStatus();
+  } catch (e) { toast("Upload failed: " + e.message, "err"); }
+}
+
+async function loadCandidatesList() {
+  const el = document.getElementById("candidates-list");
+  try {
+    const { candidates } = await api("GET", "/api/candidates");
+    if (!candidates.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No CVs uploaded yet.</p></div>'; return; }
+    el.innerHTML = candidates.map(c => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:.9rem">${c.name || c.fileName}</div>
+          <div style="color:var(--muted);font-size:.78rem">${[c.title, c.total_experience_years != null ? c.total_experience_years + "yrs" : null, c.location].filter(Boolean).join(" · ")}</div>
+        </div>
+        <span style="font-size:.75rem;color:var(--muted)">${c.source || "upload"}</span>
+        <button class="btn btn-danger" onclick="deleteCandidate('${c.id}')">✕</button>
+      </div>`).join("");
+  } catch { el.innerHTML = "<p style='color:var(--muted)'>Failed to load.</p>"; }
+}
+
+async function deleteCandidate(id) {
+  if (!confirm("Remove this candidate?")) return;
+  await api("DELETE", `/api/candidates/${id}`);
+  loadCandidatesList(); loadStatus();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SEARCH (Recruiter)
+// ═══════════════════════════════════════════════════════════════════
+async function doSearch(queryOverride) {
+  const query = queryOverride || document.getElementById("search-input").value.trim();
+  if (!query) return;
+  lastSearchQuery = query;
+  document.getElementById("search-input").value = query;
+  const btn = document.getElementById("btn-search");
+  btn.disabled = true;
+  document.getElementById("search-results").innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Ranking candidates…</p></div>';
+
+  try {
+    const r = await api("POST", "/api/search", { query });
+    lastSearchResults = r.results || [];
+    document.getElementById("stat-turns").textContent = r.conversationTurns || 0;
+    renderResults(r.results, r.totalCandidates, r.query);
+  } catch (e) {
+    document.getElementById("search-results").innerHTML = `<div class="card"><p style="color:var(--danger)">${e.message}</p></div>`;
+  } finally { btn.disabled = false; }
+}
+
+async function searchFromJD() {
+  const jdId = document.getElementById("jd-search-select").value;
+  if (!jdId) return;
+  const jds = await api("GET", "/api/jds");
+  const jd = jds.find(j => j.id === jdId);
+  if (jd?.summary) doSearch(jd.summary);
+}
+
+function renderResults(results, total, query) {
+  const el = document.getElementById("search-results");
+  if (!results?.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><p>No candidates matched. Try a different query.</p></div>'; return; }
+
+  let html = `<div style="color:var(--muted);font-size:.83rem;margin-bottom:12px;">Showing ${results.length} of ${total} candidates · <em>"${query}"</em></div>`;
+  results.forEach((c, i) => {
+    const scoreClass = c.score >= 80 ? "score-hi" : c.score >= 50 ? "score-mid" : "score-lo";
+    const vcls = verdictClass(c.verdict);
+    html += `
+      <div class="result-card" id="rc-${c.id}">
+        <div class="rc-header">
+          <div class="rc-rank ${i === 1 ? "rank2" : i === 2 ? "rank3" : ""}">#${i + 1}</div>
+          <div style="flex:1">
+            <div class="rc-name">${c.name || c.fileName}</div>
+            <div class="rc-sub">${[c.title, c.total_experience_years != null ? c.total_experience_years + "yrs" : null, c.location, c.current_company].filter(Boolean).join(" · ")}</div>
+            <span class="verdict-tag ${vcls}">${c.verdict || "N/A"}</span>
+          </div>
+          <div class="rc-score">
+            <div class="score-circle ${scoreClass}">${c.score ?? "—"}</div>
+          </div>
+        </div>
+        <div class="rc-body">
+          <div class="rc-bullets">
+            ${c.match_reasons?.length ? `<div class="rc-col"><div class="rc-col-title">✓ Strengths</div><ul>${c.match_reasons.map(r => `<li>${r}</li>`).join("")}</ul></div>` : ""}
+            ${c.gaps?.length ? `<div class="rc-col gaps"><div class="rc-col-title">△ Gaps</div><ul>${c.gaps.map(g => `<li>${g}</li>`).join("")}</ul></div>` : ""}
+          </div>
+          ${c.skills?.length ? `<div class="skills-list">${c.skills.slice(0, 8).map(s => `<span class="skill-chip">${s}</span>`).join("")}</div>` : ""}
+        </div>
+        <div class="rc-actions">
+          <button class="btn btn-outline" onclick="toggleDeepDive('${c.id}')">💬 Deep Dive</button>
+          <button class="btn btn-outline" onclick="addCandidateToPipeline('${c.id}')">+ Pipeline</button>
+        </div>
+        <div id="dd-${c.id}" class="deepdive-panel" style="display:none;">
+          <h4>Deep Dive — ${c.name || c.fileName}</h4>
+          <div class="dd-row">
+            <input type="text" id="dd-input-${c.id}" placeholder="Ask anything about this candidate…" onkeydown="if(event.key==='Enter')askDeepDive('${c.id}')" />
+            <button class="btn btn-accent" onclick="askDeepDive('${c.id}')">Ask</button>
+          </div>
+          <div id="dd-answer-${c.id}"></div>
+        </div>
+      </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function verdictClass(v) {
+  if (!v) return "vt-no";
+  if (v.includes("Strong")) return "vt-strong";
+  if (v.includes("Good")) return "vt-good";
+  if (v.includes("Partial")) return "vt-partial";
+  if (v.includes("Weak")) return "vt-weak";
+  return "vt-no";
+}
+
+function toggleDeepDive(id) {
+  const el = document.getElementById("dd-" + id);
+  el.style.display = el.style.display === "none" ? "block" : "none";
+  if (el.style.display === "block") document.getElementById("dd-input-" + id)?.focus();
+}
+
+async function askDeepDive(id) {
+  const input = document.getElementById("dd-input-" + id);
+  const question = input.value.trim();
+  if (!question) return;
+  const answerEl = document.getElementById("dd-answer-" + id);
+  answerEl.innerHTML = '<div class="dd-answer"><span class="spinner"></span></div>';
+  try {
+    const r = await api("POST", "/api/deepdive", { candidateId: id, question });
+    answerEl.innerHTML = `<div class="dd-answer">${r.answer}</div>`;
+    input.value = "";
+  } catch (e) { answerEl.innerHTML = `<div class="dd-answer" style="color:var(--danger)">${e.message}</div>`; }
+}
+
+async function resetConversation() {
+  await api("POST", "/api/reset-conversation");
+  document.getElementById("stat-turns").textContent = 0;
+  toast("Conversation context reset.", "ok");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SAVED SEARCHES
+// ═══════════════════════════════════════════════════════════════════
+function openSaveSearchModal() {
+  if (!lastSearchQuery) return toast("Run a search first.", "err");
+  document.getElementById("save-search-name").value = "";
+  document.getElementById("save-search-query-preview").textContent = `Query: "${lastSearchQuery}"`;
+  document.getElementById("save-search-modal").classList.add("open");
+}
+function closeSaveSearchModal() { document.getElementById("save-search-modal").classList.remove("open"); }
+
+async function doSaveSearch() {
+  const name = document.getElementById("save-search-name").value.trim();
+  if (!name) return toast("Enter a name.", "err");
+  await api("POST", "/api/saved-searches", { name, query: lastSearchQuery, results: lastSearchResults });
+  closeSaveSearchModal();
+  toast("Search saved.", "ok");
+  loadSavedSearches();
+}
+
+async function loadSavedSearches() {
+  const el = document.getElementById("saved-searches-list");
+  if (!el) return;
+  try {
+    const searches = await api("GET", "/api/saved-searches");
+    if (!searches.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔖</div><p>No saved searches yet. Run a search and save it.</p></div>'; return; }
+    el.innerHTML = searches.map(s => `
+      <div class="saved-card">
+        <div class="sc-meta">
+          <div class="sc-name">${s.name}</div>
+          <div class="sc-query">"${s.query}"</div>
+          <div class="sc-info">Last run: ${s.lastRunAt ? new Date(s.lastRunAt).toLocaleDateString() : "Never"} · ${s.results?.length || 0} results</div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn btn-accent" onclick="runSavedSearch('${s.id}')">▶ Run</button>
+          <button class="btn btn-danger" onclick="deleteSavedSearch('${s.id}')">✕</button>
+        </div>
+      </div>`).join("");
+  } catch { el.innerHTML = "<p style='color:var(--muted)'>Failed to load.</p>"; }
+}
+
+async function runSavedSearch(id) {
+  toast("Running search…", "ok");
+  try {
+    const r = await api("POST", `/api/saved-searches/${id}/run`);
+    lastSearchQuery = r.query;
+    lastSearchResults = r.results;
+    switchTab("search");
+    document.getElementById("search-input").value = r.query;
+    renderResults(r.results, r.totalCandidates, r.query);
+  } catch (e) { toast(e.message, "err"); }
+}
+
+async function deleteSavedSearch(id) {
+  if (!confirm("Delete this saved search?")) return;
+  await api("DELETE", `/api/saved-searches/${id}`);
+  loadSavedSearches();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// JD LIBRARY
+// ═══════════════════════════════════════════════════════════════════
+async function buildJD() {
+  const desc = document.getElementById("jd-description").value.trim();
+  if (!desc) return toast("Enter a role description.", "err");
+  document.getElementById("btn-build-jd").style.display = "none";
+  document.getElementById("jd-loading").style.display = "flex";
+  try {
+    await api("POST", "/api/jds/build", { description: desc });
+    document.getElementById("jd-description").value = "";
+    toast("JD built and saved.", "ok");
+    loadJDLibrary();
+    populateJDSelect();
+  } catch (e) { toast("Failed: " + e.message, "err"); }
+  finally { document.getElementById("btn-build-jd").style.display = ""; document.getElementById("jd-loading").style.display = "none"; }
+}
+
+async function loadJDLibrary() {
+  const el = document.getElementById("jd-library-list");
+  if (!el) return;
+  try {
+    const jds = await api("GET", "/api/jds");
+    if (!jds.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>No JDs yet. Build one above.</p></div>'; return; }
+    el.innerHTML = jds.map(jd => `
+      <div class="jd-card">
+        <div class="jd-header">
+          <div>
+            <div class="jd-title">${jd.title || "Untitled"}</div>
+            <div style="color:var(--muted);font-size:.78rem;margin-top:2px;">${jd.min_experience_years ? jd.min_experience_years + "+ yrs" : ""} ${(jd.industries || []).join(", ")}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span class="jd-seniority">${jd.seniority || ""}</span>
+            <button class="btn btn-outline" onclick="searchWithJD('${jd.id}')">Search</button>
+            <button class="btn btn-danger" onclick="deleteJD('${jd.id}')">✕</button>
+          </div>
+        </div>
+        <div class="jd-body">${jd.summary || ""}</div>
+        <div class="jd-skills">
+          ${(jd.required_skills || []).map(s => `<span class="skill-chip skill-required">${s}</span>`).join("")}
+          ${(jd.nice_to_have || []).map(s => `<span class="skill-chip skill-nice">${s}</span>`).join("")}
+        </div>
+      </div>`).join("");
+  } catch { el.innerHTML = "<p style='color:var(--muted)'>Failed to load.</p>"; }
+}
+
+async function searchWithJD(jdId) {
+  const jds = await api("GET", "/api/jds");
+  const jd = jds.find(j => j.id === jdId);
+  if (jd?.summary) { switchTab("search"); doSearch(jd.summary); }
+}
+
+async function deleteJD(id) {
+  if (!confirm("Delete this JD?")) return;
+  await api("DELETE", `/api/jds/${id}`);
+  loadJDLibrary();
+  populateJDSelect();
+}
+
+async function populateJDSelect() {
+  const el = document.getElementById("jd-search-select");
+  if (!el) return;
+  try {
+    const jds = await api("GET", "/api/jds");
+    el.innerHTML = '<option value="">Use a saved JD…</option>' + jds.map(j => `<option value="${j.id}">${j.title}</option>`).join("");
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CSV IMPORT
+// ═══════════════════════════════════════════════════════════════════
+const csvDrop = document.getElementById("csv-drop-zone");
+csvDrop.addEventListener("dragover", e => { e.preventDefault(); csvDrop.classList.add("dragover"); });
+csvDrop.addEventListener("dragleave", () => csvDrop.classList.remove("dragover"));
+csvDrop.addEventListener("drop", e => { e.preventDefault(); csvDrop.classList.remove("dragover"); importCSV(e.dataTransfer.files[0]); });
+
+async function importCSV(file) {
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("file", file);
+  document.getElementById("import-result").innerHTML = '<span class="spinner"></span> Importing…';
+  try {
+    const r = await apiFetch("POST", "/api/import/csv", formData, true);
+    if (r.error) throw new Error(r.error);
+    document.getElementById("import-result").innerHTML = `<div style="color:var(--success)">✓ Imported ${r.imported} candidate(s). ${r.failed ? r.failed + " failed." : ""}</div>`;
+    loadStatus(); loadCandidatesList();
+  } catch (e) { document.getElementById("import-result").innerHTML = `<div style="color:var(--danger)">✗ ${e.message}</div>`; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PIPELINE / KANBAN
+// ═══════════════════════════════════════════════════════════════════
+const STAGES = ["applied", "screening", "interview", "offer", "hired", "rejected"];
+const STAGE_LABELS = { applied: "Applied", screening: "Screening", interview: "Interview", offer: "Offer", hired: "Hired ✓", rejected: "Rejected" };
+
+async function loadPipeline() {
+  const board = document.getElementById("kanban-board");
+  if (!board) return;
+  try {
+    const { pipeline } = await api("GET", "/api/pipeline");
+    const candidates = (await api("GET", "/api/candidates")).candidates;
+    const candMap = {};
+    candidates.forEach(c => { candMap[c.id] = c; });
+
+    const byStage = {};
+    STAGES.forEach(s => { byStage[s] = []; });
+    pipeline.forEach(p => { if (byStage[p.stage]) byStage[p.stage].push(p); });
+
+    board.innerHTML = STAGES.map(stage => `
+      <div class="kanban-col">
+        <div class="kanban-col-title">${STAGE_LABELS[stage]} <span style="color:var(--muted)">(${byStage[stage].length})</span></div>
+        ${byStage[stage].map(p => {
+          const c = candMap[p.candidateId] || {};
+          return `<div class="kanban-card">
+            <div class="kc-name">${c.name || p.candidateId}</div>
+            <div class="kc-title">${c.title || "—"}</div>
+            <div class="kc-actions">
+              ${STAGES.filter(s => s !== stage).map(s => `<span class="stage-pill" onclick="movePipeline('${p.id}','${s}')">${STAGE_LABELS[s]}</span>`).join("")}
+              <span class="stage-pill" style="color:var(--danger)" onclick="removePipeline('${p.id}')">Remove</span>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`).join("");
+  } catch {}
+}
+
+async function addToPipeline() {
+  const candidateId = document.getElementById("pipeline-candidate-select").value;
+  const jdId = document.getElementById("pipeline-jd-select").value;
+  const stage = document.getElementById("pipeline-stage-select").value;
+  if (!candidateId) return toast("Select a candidate.", "err");
+  await api("POST", "/api/pipeline", { candidateId, jdId: jdId || null, stage });
+  toast("Added to pipeline.", "ok");
+  loadPipeline();
+}
+
+async function addCandidateToPipeline(candidateId) {
+  await api("POST", "/api/pipeline", { candidateId, stage: "applied" });
+  toast("Added to pipeline.", "ok");
+}
+
+async function movePipeline(id, stage) {
+  await api("PATCH", `/api/pipeline/${id}`, { stage });
+  loadPipeline();
+}
+
+async function removePipeline(id) {
+  await api("DELETE", `/api/pipeline/${id}`);
+  loadPipeline();
+}
+
+async function populatePipelineSelects() {
+  try {
+    const { candidates } = await api("GET", "/api/candidates");
+    const cs = document.getElementById("pipeline-candidate-select");
+    if (cs) cs.innerHTML = '<option value="">Select candidate…</option>' + candidates.map(c => `<option value="${c.id}">${c.name || c.fileName}</option>`).join("");
+    const jds = await api("GET", "/api/jds");
+    const js = document.getElementById("pipeline-jd-select");
+    if (js) js.innerHTML = '<option value="">No specific JD</option>' + jds.map(j => `<option value="${j.id}">${j.title}</option>`).join("");
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CANDIDATE: MY PROFILE
+// ═══════════════════════════════════════════════════════════════════
+async function loadMyProfile() {
+  try {
+    const { metaCV } = await api("GET", "/api/meta-cvs/me");
+    if (metaCV) { metaCVData = metaCV; renderProfile(); }
+  } catch {}
+}
+
+async function buildMetaCV() {
+  const desc = document.getElementById("metacv-description").value.trim();
+  if (!desc) return toast("Describe your background.", "err");
+  document.getElementById("btn-build-metacv").style.display = "none";
+  document.getElementById("metacv-loading").style.display = "flex";
+  try {
+    const { metaCV } = await api("POST", "/api/meta-cvs/build", { description: desc });
+    metaCVData = metaCV;
+    document.getElementById("metacv-description").value = "";
+    renderProfile();
+    toast("Profile built!", "ok");
+  } catch (e) { toast("Failed: " + e.message, "err"); }
+  finally { document.getElementById("btn-build-metacv").style.display = ""; document.getElementById("metacv-loading").style.display = "none"; }
+}
+
+function renderProfile() {
+  if (!metaCVData) return;
+  document.getElementById("profile-view").style.display = "block";
+  document.getElementById("profile-basic").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:.875rem;">
+      <div><span style="color:var(--muted)">Name:</span> ${metaCVData.name || "—"}</div>
+      <div><span style="color:var(--muted)">Title:</span> ${metaCVData.title || "—"}</div>
+      <div><span style="color:var(--muted)">Experience:</span> ${metaCVData.total_experience_years ?? "?"} years</div>
+      <div><span style="color:var(--muted)">Industries:</span> ${(metaCVData.industries || []).join(", ") || "—"}</div>
+    </div>`;
+  document.getElementById("profile-summary-edit").value = metaCVData.summary || "";
+  renderSkillsEditor();
+  renderIndustriesEditor();
+  renderPreferredRoles();
+}
+
+function renderSkillsEditor() {
+  const el = document.getElementById("profile-skills");
+  el.innerHTML = '<div class="skills-editor">' + (metaCVData.skills || []).map((s, i) =>
+    `<span class="skill-editable">${s}<span class="skill-remove" onclick="removeSkill(${i})">×</span></span>`
+  ).join("") + "</div>";
+}
+
+function renderIndustriesEditor() {
+  const el = document.getElementById("profile-industries");
+  el.innerHTML = '<div class="skills-editor">' + (metaCVData.industries || []).map(i =>
+    `<span class="skill-chip">${i}</span>`
+  ).join("") + "</div>";
+}
+
+function renderPreferredRoles() {
+  const el = document.getElementById("profile-preferred");
+  el.innerHTML = '<div class="skills-editor">' + (metaCVData.preferredRoles || []).map(r =>
+    `<span class="skill-chip">${r}</span>`
+  ).join("") + "</div>";
+}
+
+function removeSkill(index) {
+  metaCVData.skills.splice(index, 1);
+  renderSkillsEditor();
+  markProfileDirty();
+}
+
+function addSkill() {
+  const input = document.getElementById("new-skill-input");
+  const skill = input.value.trim();
+  if (!skill) return;
+  if (!metaCVData.skills) metaCVData.skills = [];
+  metaCVData.skills.push(skill);
+  input.value = "";
+  renderSkillsEditor();
+  markProfileDirty();
+}
+
+function markProfileDirty() {
+  profileDirty = true;
+  document.getElementById("btn-save-profile").style.display = "block";
+}
+
+async function saveProfile() {
+  metaCVData.summary = document.getElementById("profile-summary-edit").value;
+  await api("PUT", "/api/meta-cvs/me", metaCVData);
+  profileDirty = false;
+  document.getElementById("btn-save-profile").style.display = "none";
+  toast("Profile saved.", "ok");
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CANDIDATE: MATCHED ROLES
+// ═══════════════════════════════════════════════════════════════════
+async function doMatch() {
+  const el = document.getElementById("match-results");
+  const btn = document.getElementById("btn-match");
+  btn.disabled = true;
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Matching your profile against available roles…</p></div>';
+  try {
+    const r = await api("GET", "/api/match/me-to-jds");
+    if (!r.matches?.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><p>No JDs available. Check back later.</p></div>'; return; }
+    el.innerHTML = r.matches.map(m => {
+      const scoreClass = m.score >= 80 ? "score-hi" : m.score >= 50 ? "score-mid" : "score-lo";
+      return `
+        <div class="match-card" onclick="switchToGap('${m.id}')">
+          <div class="match-score-badge ${scoreClass}">${m.score}</div>
+          <div class="match-body">
+            <div class="match-title">${m.title}</div>
+            <div class="match-meta">${m.seniority || ""} ${m.min_experience_years ? "· " + m.min_experience_years + "+ yrs" : ""} <span class="verdict-tag ${verdictClass(m.verdict)}">${m.verdict}</span></div>
+            ${m.fit_reasons?.length ? `<div class="match-fit"><div class="fit-label">Why you fit</div><div class="fit-items">${m.fit_reasons.map(r => `<div class="fit-item">${r}</div>`).join("")}</div></div>` : ""}
+            ${m.gaps?.length ? `<div class="match-fit" style="margin-top:8px;"><div class="fit-label" style="color:var(--warning)">Gaps</div><div class="fit-items">${m.gaps.map(g => `<div class="fit-item" style="color:var(--muted)">${g}</div>`).join("")}</div></div>` : ""}
+            <div style="margin-top:10px;font-size:.8rem;color:var(--accent)">Click to run gap analysis →</div>
+          </div>
+        </div>`;
+    }).join("");
+  } catch (e) { el.innerHTML = `<div class="card"><p style="color:var(--danger)">${e.message}</p></div>`; }
+  finally { btn.disabled = false; }
+}
+
+function switchToGap(jdId) {
+  const sel = document.getElementById("gap-jd-select");
+  if (sel) { sel.value = jdId; switchTab("gap"); }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CANDIDATE: GAP ANALYSIS
+// ═══════════════════════════════════════════════════════════════════
+async function loadJDsForCandidate() {
+  const sel = document.getElementById("gap-jd-select");
+  if (!sel) return;
+  try {
+    const jds = await api("GET", "/api/jds");
+    sel.innerHTML = '<option value="">Select a role…</option>' + jds.map(j => `<option value="${j.id}">${j.title} (${j.seniority || "N/A"})</option>`).join("");
+  } catch {}
+}
+
+async function doGapAnalysis() {
+  const jdId = document.getElementById("gap-jd-select").value;
+  if (!jdId) return toast("Select a role first.", "err");
+  const el = document.getElementById("gap-results");
+  const btn = document.getElementById("btn-gap");
+  btn.disabled = true;
+  document.getElementById("gap-loading").style.display = "flex";
+  el.innerHTML = "";
+
+  try {
+    const r = await api("GET", `/api/gap-analysis/${jdId}`);
+    const a = r.analysis;
+    const verdict = a.verdict || "N/A";
+    const verdColors = { "Ready": "var(--success)", "Near Ready": "var(--accent2)", "Needs Development": "var(--warning)", "Major Gap": "var(--danger)" };
+    const color = verdColors[verdict] || "var(--muted)";
+
+    el.innerHTML = `
+      <div class="analysis-header">
+        <div class="ah-score">${a.overall_score ?? "—"}</div>
+        <div>
+          <div class="ah-verdict" style="color:${color}">${verdict}</div>
+          <div class="ah-timeline">⏱ ${a.timeline_to_ready || "—"} to close gaps</div>
+        </div>
+        <div class="readiness-bar" style="flex:1;min-width:200px;">
+          <div class="readiness-fill" style="width:${a.overall_score ?? 0}%"></div>
+        </div>
+      </div>
+
+      ${a.top_recommendation ? `
+      <div class="top-rec">
+        <div class="top-rec-label">🎯 Top Recommendation</div>
+        <div class="top-rec-text">${a.top_recommendation}</div>
+      </div>` : ""}
+
+      ${a.strengths?.length ? `
+      <div class="card" style="margin-bottom:16px;">
+        <h3 style="color:var(--success);">✓ Your Strengths</h3>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;">
+          ${a.strengths.map(s => `<li style="font-size:.875rem;padding:4px 0;border-bottom:1px solid var(--border);">${s}</li>`).join("")}
+        </ul>
+      </div>` : ""}
+
+      ${a.gaps?.length ? `
+      <div style="font-size:.875rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px;">Skills to Develop</div>
+      <div class="gap-grid">
+        ${a.gaps.map(g => `
+          <div class="gap-item">
+            <div class="gap-area">${g.area}</div>
+            <span class="gap-severity sev-${(g.severity || "minor").toLowerCase()}">${g.severity}</span>
+            <div class="gap-desc">${g.description}</div>
+            <div class="gap-rec">${g.recommendation}</div>
+          </div>`).join("")}
+      </div>` : ""}`;
+  } catch (e) { el.innerHTML = `<div class="card"><p style="color:var(--danger)">${e.message}</p></div>`; }
+  finally { btn.disabled = false; document.getElementById("gap-loading").style.display = "none"; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════════
+async function api(method, path, body) {
+  const r = await apiFetch(method, path, body);
+  if (r.error) throw new Error(r.error);
+  return r;
+}
+
+async function apiFetch(method, path, body, isFormData = false) {
+  const opts = {
+    method,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  };
+  if (body && !isFormData) {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  } else if (body && isFormData) {
+    opts.body = body; // FormData — browser sets Content-Type automatically
+  }
+  const res = await fetch(path, opts);
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, type = "ok") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = type === "ok" ? "toast-ok" : "toast-err";
+  el.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display = "none"; }, 3500);
+}
+</script>
+</body>
+</html>
