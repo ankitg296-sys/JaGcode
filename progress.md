@@ -1,5 +1,5 @@
 # TalentMatch AI — Progress Log
-*Last updated: April 20, 2026 (Session 2)*
+*Last updated: April 20, 2026 (Session 3)*
 
 ---
 
@@ -23,6 +23,30 @@ All three phases are fully built. Phase 3 is the active product — two-sided pl
 ---
 
 ## Session Log
+
+### April 20, 2026 (Session 3) — Submit to Recruiter Pool + User Credentials Sheet
+
+#### What was built
+
+| Feature | Detail |
+|---|---|
+| **Submit to Recruiter Pool** | Candidate clicks one button — their MetaCV is converted into a recruiter-searchable candidate record |
+| **Pool status indicator** | Green status bar shows "Visible to recruiters · Last updated [date]" once submitted |
+| **Re-submit / sync** | Submitting again updates the existing recruiter record with latest profile data |
+| **Chat confirmation** | AI confirms submission in the chat thread |
+| **TalentMatch-Users.xlsx** | All registered accounts — Name, Email, Role, Password, Created date. Colour-coded rows (purple = recruiter, green = candidate). Notes sheet explains bcrypt hashing. |
+
+#### New server routes
+
+| Route | Purpose |
+|---|---|
+| `POST /api/candidate/submit-to-pool` | Converts MetaCV → candidate record in recruiter's DB, marks profile as submitted |
+| `GET /api/candidate/pool-status` | Returns `{ submitted, submittedAt, candidateId }` |
+
+#### GitHub commits
+- `9db4979` — feat: candidate submit-to-pool + user credentials Excel sheet
+
+---
 
 ### April 20, 2026 (Session 2) — Candidate Profile Chat + CV Import + PDF Download
 
@@ -199,11 +223,13 @@ Search: *"HR professional with recruitment experience"*
 - [x] Candidate profile chat — conversational interface to build/update profile
 - [x] CV import in chat — upload PDF/DOCX, auto-parsed, AI summarises instantly
 - [x] Download Profile PDF — nicely formatted PDF export of candidate's MetaCV
+- [x] Submit to Recruiter Pool — one-click to make profile visible to recruiters
 - [x] Candidate portal — matched roles, gap analysis
 - [x] Bi-directional matching — candidate profile ranked against all JDs
 - [x] Skills gap analysis — readiness score, severity-tagged gaps, action plan
 - [x] Recruiter pipeline kanban — Applied → Screening → Interview → Offer → Hired / Rejected
 - [x] All Phase 2 recruiter features inherited (upload, search, saved searches, JD library, CSV import, export)
+- [x] TalentMatch-Users.xlsx — registered users reference sheet
 - [ ] Multi-user / org isolation (all users share one DB — Phase 4)
 - [ ] Cloud / web deployment (Phase 4)
 
