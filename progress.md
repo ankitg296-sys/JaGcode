@@ -1,5 +1,5 @@
 # TalentMatch AI — Progress Log
-*Last updated: April 20, 2026*
+*Last updated: April 20, 2026 (Session 2)*
 
 ---
 
@@ -23,6 +23,40 @@ All three phases are fully built. Phase 3 is the active product — two-sided pl
 ---
 
 ## Session Log
+
+### April 20, 2026 (Session 2) — Candidate Profile Chat + CV Import + PDF Download
+
+#### What was built
+
+| Feature | Detail |
+|---|---|
+| **Profile chat interface** | Replaced textarea+button with a split-panel chat UI (chat left, live profile right) |
+| **CV import in chat** | Candidate uploads PDF/DOCX — auto-parsed instantly, AI summarises what it found |
+| **Drag-and-drop** | Drop CV anywhere on the profile tab, or use the Upload CV button in the chat input |
+| **Conversational profile building** | Chat to update: "change my title", "add Python", "I also worked at Accenture" |
+| **Live profile panel** | Updates in real-time with every AI response — skills editable, chips removable |
+| **Download Profile PDF** | One-click PDF export of the candidate's MetaCV — nicely formatted, streams from server |
+
+#### New server routes
+
+| Route | Purpose |
+|---|---|
+| `POST /api/candidate/upload-cv` | Parse candidate's own CV (without adding to recruiter's candidate list) |
+| `POST /api/candidate/chat` | Profile-building conversation — AI returns message + updated profile JSON |
+| `GET /api/candidate/download-profile` | Generate + stream a formatted PDF of the candidate's MetaCV |
+
+#### New utility functions
+
+| Function | File | Purpose |
+|---|---|---|
+| `parseFileOnly(filePath)` | `cvParser.js` | Parse CV text + extract structured data without saving to DB |
+| `profileChat(msg, history, profile)` | `ranker.js` | Conversational profile builder — returns `{message, profile}` JSON |
+
+#### GitHub commits
+- `e7d3ec6` — feat: candidate profile chat interface with CV import
+- `bbb3aff` — feat: candidate profile PDF download
+
+---
 
 ### April 20, 2026 — Phase 3 Built, Tested & Live
 
@@ -162,6 +196,9 @@ Search: *"HR professional with recruitment experience"*
 - [x] User accounts + auth (email/password, bcryptjs + JWT)
 - [x] Roles: recruiter and candidate — fully separated views
 - [x] Meta CV Builder — AI builds candidate profile from plain English
+- [x] Candidate profile chat — conversational interface to build/update profile
+- [x] CV import in chat — upload PDF/DOCX, auto-parsed, AI summarises instantly
+- [x] Download Profile PDF — nicely formatted PDF export of candidate's MetaCV
 - [x] Candidate portal — matched roles, gap analysis
 - [x] Bi-directional matching — candidate profile ranked against all JDs
 - [x] Skills gap analysis — readiness score, severity-tagged gaps, action plan
