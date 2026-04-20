@@ -111,6 +111,9 @@ Search: *"HR professional with recruitment experience"*
 - [x] Export PDF — formatted report via pdfkit
 - [x] ATS CSV import — Greenhouse/Lever/any standard format
 - [x] 5-tab UI: Upload · Search · Saved Searches · JD Library · CSV Import
+- [x] Strict domain-only scoring — no soft-skill inflation
+- [x] `temperature: 0` — consistent scores across identical queries
+- [x] All code pushed to GitHub (ankitg296-sys/JaGcode)
 
 ### Phase 3 — Not started
 - [ ] User accounts + auth (email/password)
