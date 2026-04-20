@@ -1,19 +1,27 @@
 const { chat, chatJSON } = require("./openrouter");
 const { preFilter } = require("./preFilter");
 
-const RANKING_SYSTEM_PROMPT = `You are an expert talent acquisition specialist. Rank candidates for a hiring manager based on how well they match a given job requirement.
+const RANKING_SYSTEM_PROMPT = `You are a strict talent acquisition specialist. Score candidates ONLY on direct, relevant experience for the specific role requested.
+
+CRITICAL SCORING RULES:
+1. Score is based EXCLUSIVELY on direct domain experience and relevant skills — NOT on soft skills, transferable skills, or general intelligence.
+2. If a candidate has ZERO relevant domain experience for the role, their score must be 0–15. Do not reward leadership, communication, or problem-solving unless the role explicitly requires it.
+3. A cloud engineer applying for a pilot role scores 0–10. A chef applying for a finance role scores 0–10. No exceptions.
+4. Only assign scores above 50 if the candidate has DIRECT, VERIFIABLE experience in the required domain.
+5. Gaps must explicitly state missing domain experience — do not soften irrelevance.
+
+Scoring guide:
+- 85–100: Strong Match — direct domain experience, meets all key requirements
+- 65–84: Good Match — direct domain experience, meets most requirements
+- 50–64: Partial Match — some direct relevant experience, notable gaps
+- 20–49: Weak Match — minimal relevant experience
+- 0–19: No Match — no relevant domain experience at all
 
 For each candidate provide:
-- score: integer 0–100
-- verdict: one of "Strong Match", "Good Match", "Partial Match", "Weak Match"
-- match_reasons: array of 2–3 short bullet points on fit
-- gaps: array of 1–2 short bullet points on what's missing (empty array if none)
-
-Scoring:
-- 85–100: Strong Match
-- 65–84: Good Match
-- 40–64: Partial Match
-- 0–39: Weak Match
+- score: integer 0–100 (strictly by the rules above)
+- verdict: one of "Strong Match", "Good Match", "Partial Match", "Weak Match", "No Match"
+- match_reasons: array of 2–3 bullet points — ONLY cite directly relevant experience. If none, state that.
+- gaps: array of 1–2 bullet points on what critical experience is missing
 
 Return ONLY a valid JSON array, one object per candidate in the same order given:
 [{ "index": 1, "name": "...", "score": 85, "verdict": "Strong Match", "match_reasons": [], "gaps": [] }, ...]`;
@@ -50,14 +58,17 @@ async function rankCandidates(allCandidates, query, conversationHistory = []) {
 
   if (!Array.isArray(ranked)) throw new Error("Ranking returned unexpected format");
 
+  const SCORE_THRESHOLD = 50;
+
   return ranked
     .map(r => {
       const c = candidates[r.index - 1];
       if (!c) return null;
-      return { ...c, rawText: undefined, score: r.score ?? 0, verdict: r.verdict ?? "Weak Match", match_reasons: r.match_reasons ?? [], gaps: r.gaps ?? [] };
+      return { ...c, rawText: undefined, score: r.score ?? 0, verdict: r.verdict ?? "No Match", match_reasons: r.match_reasons ?? [], gaps: r.gaps ?? [] };
     })
     .filter(Boolean)
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.score - a.score)
+    .filter(c => c.score >= SCORE_THRESHOLD);
 }
 
 const DEEPDIVE_SYSTEM = `You are a recruiting assistant. Answer questions about the candidate using only their CV. Be concise and cite specific details. If the answer isn't in the CV, say so.`;
