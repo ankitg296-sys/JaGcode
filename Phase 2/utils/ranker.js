@@ -58,8 +58,6 @@ async function rankCandidates(allCandidates, query, conversationHistory = []) {
 
   if (!Array.isArray(ranked)) throw new Error("Ranking returned unexpected format");
 
-  const SCORE_THRESHOLD = 50;
-
   return ranked
     .map(r => {
       const c = candidates[r.index - 1];
@@ -67,8 +65,7 @@ async function rankCandidates(allCandidates, query, conversationHistory = []) {
       return { ...c, rawText: undefined, score: r.score ?? 0, verdict: r.verdict ?? "No Match", match_reasons: r.match_reasons ?? [], gaps: r.gaps ?? [] };
     })
     .filter(Boolean)
-    .sort((a, b) => b.score - a.score)
-    .filter(c => c.score >= SCORE_THRESHOLD);
+    .sort((a, b) => b.score - a.score);
 }
 
 const DEEPDIVE_SYSTEM = `You are a recruiting assistant. Answer questions about the candidate using only their CV. Be concise and cite specific details. If the answer isn't in the CV, say so.`;

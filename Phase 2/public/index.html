@@ -591,16 +591,7 @@ async function doSearch() {
 
   document.getElementById('res-count').textContent = data.results.length;
   document.getElementById('res-query').textContent = `"${query}"`;
-  if (data.results.length === 0) {
-    document.getElementById('results-list').innerHTML = `
-      <div class="welcome" style="padding:40px 0">
-        <div class="welcome-icon">🚫</div>
-        <h2>No relevant candidates found</h2>
-        <p style="color:var(--muted)">None of the ${data.totalCandidates} loaded candidates scored above 50% for this requirement.<br>Try a different query or upload more relevant CVs.</p>
-      </div>`;
-  } else {
-    document.getElementById('results-list').innerHTML = data.results.map((c, i) => buildCard(c, i)).join('');
-  }
+  document.getElementById('results-list').innerHTML = data.results.map((c, i) => buildCard(c, i)).join('');
   document.getElementById('search-results').style.display = '';
 }
 
