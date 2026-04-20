@@ -277,15 +277,119 @@
   .top-rec-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .5px; color: var(--accent); margin-bottom: 4px; }
   .top-rec-text { font-size: 0.925rem; color: var(--text); }
 
-  /* Profile / Meta CV */
-  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 640px) { .profile-grid { grid-template-columns: 1fr; } }
-  .profile-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
-  .profile-section h4 { color: var(--accent2); font-size: 0.875rem; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
-  .skills-editor { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .skill-editable { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; }
-  .skill-remove { cursor: pointer; color: var(--muted); font-size: 0.9rem; }
-  .skill-remove:hover { color: var(--danger); }
+  /* ── Profile Chat Layout ── */
+  .profile-layout {
+    display: grid; grid-template-columns: 1fr 360px; gap: 20px;
+    height: calc(100vh - 120px); min-height: 500px; position: relative;
+  }
+  @media (max-width: 860px) { .profile-layout { grid-template-columns: 1fr; height: auto; } }
+
+  /* Chat column */
+  .chat-col {
+    display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; min-height: 480px;
+  }
+  .chat-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    scroll-behavior: smooth;
+  }
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-track { background: transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Message bubbles */
+  .msg { display: flex; gap: 10px; max-width: 85%; animation: msgIn .2s ease; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .msg.assistant { align-self: flex-start; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: .8rem; margin-top: 2px;
+  }
+  .msg.assistant .msg-avatar { background: rgba(99,102,241,.2); color: var(--accent2); }
+  .msg.user .msg-avatar { background: rgba(16,185,129,.15); color: var(--success); }
+  .msg-bubble {
+    padding: 10px 14px; border-radius: 12px; font-size: .875rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+  }
+  .msg.assistant .msg-bubble { background: var(--surface2); border: 1px solid var(--border); border-top-left-radius: 4px; }
+  .msg.user .msg-bubble { background: var(--accent); color: #fff; border-top-right-radius: 4px; }
+  .msg-bubble strong { font-weight: 700; }
+  .msg-event {
+    align-self: center; font-size: .78rem; color: var(--muted); text-align: center;
+    background: var(--surface2); border: 1px solid var(--border); padding: 4px 14px; border-radius: 20px;
+  }
+
+  /* CV drop hint (shown in empty chat) */
+  .cv-drop-hint {
+    margin: 0 16px 12px; border: 2px dashed var(--border); border-radius: 10px;
+    padding: 20px; text-align: center; cursor: pointer; transition: all .2s; flex-shrink: 0;
+  }
+  .cv-drop-hint:hover, .cv-drop-hint.dragover { border-color: var(--accent); background: rgba(99,102,241,.05); }
+
+  /* Chat input area */
+  .chat-input-area {
+    padding: 12px 14px; border-top: 1px solid var(--border);
+    display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0;
+  }
+  .upload-btn {
+    display: flex; align-items: center; gap: 5px; padding: 8px 12px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; color: var(--muted); font-size: .78rem; font-weight: 600;
+    transition: all .2s; white-space: nowrap; flex-shrink: 0;
+  }
+  .upload-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .upload-btn.loading { opacity: .5; cursor: default; pointer-events: none; }
+  .chat-textarea {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); padding: 9px 12px; font-size: .875rem; resize: none;
+    line-height: 1.4; max-height: 120px; overflow-y: auto; font-family: inherit; outline: none;
+    transition: border-color .2s;
+  }
+  .chat-textarea:focus { border-color: var(--accent); }
+  .send-btn {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #fff;
+    border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background .2s; align-self: flex-end;
+  }
+  .send-btn:hover { background: var(--accent2); }
+  .send-btn:disabled { opacity: .4; cursor: default; }
+
+  /* Drag-over overlay */
+  .cv-drag-overlay {
+    position: absolute; inset: 0; background: rgba(99,102,241,.12);
+    border: 3px dashed var(--accent); border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+  .cv-drag-inner { text-align: center; color: var(--accent2); }
+
+  /* Profile panel */
+  .profile-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 0;
+  }
+  .profile-panel::-webkit-scrollbar { width: 4px; }
+  .profile-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .profile-empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .pp-header { padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .pp-name { font-size: 1.1rem; font-weight: 700; }
+  .pp-title { color: var(--accent2); font-size: .875rem; margin-top: 3px; }
+  .pp-exp { color: var(--muted); font-size: .78rem; margin-top: 3px; }
+  .pp-section { margin-bottom: 16px; }
+  .pp-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+  .pp-summary-text { font-size: .83rem; color: var(--text); line-height: 1.55; }
+  .pp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .pp-chip { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: .75rem; padding: 3px 9px; border-radius: 20px; display: flex; align-items: center; gap: 4px; }
+  .pp-chip-remove { cursor: pointer; color: var(--muted); font-size: .85rem; line-height: 1; }
+  .pp-chip-remove:hover { color: var(--danger); }
+  .pp-exp-item { font-size: .8rem; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .pp-exp-item:last-child { border-bottom: none; }
+  .pp-exp-title { font-weight: 600; }
+  .pp-exp-co { color: var(--muted); }
   .add-skill-row { display: flex; gap: 8px; margin-top: 8px; }
   .add-skill-row input { flex: 1; }
 
@@ -547,45 +651,101 @@
 
     <!-- My Profile -->
     <div class="tab-pane" id="tab-profile">
-      <div class="section-title">My Profile</div>
-      <div class="card">
-        <h3>Build Profile with AI</h3>
-        <p style="color:var(--muted);font-size:.875rem;margin-bottom:10px;">Describe your background and career goals in plain English.</p>
-        <textarea id="metacv-description" rows="4" placeholder="e.g. I'm a 6-year HR professional specialising in talent acquisition and L&D. I've hired for tech and fintech companies, led teams of 3, and I'm looking for senior HRBP or TA Lead roles…"></textarea>
-        <div style="margin-top:10px;display:flex;gap:10px;">
-          <button class="btn btn-accent" id="btn-build-metacv" onclick="buildMetaCV()">Build Profile</button>
-          <span id="metacv-loading" style="display:none;align-items:center;gap:8px;color:var(--muted);font-size:.875rem;"><span class="spinner"></span> Building…</span>
-        </div>
-      </div>
-      <div id="profile-view" style="display:none;">
-        <div class="profile-grid">
-          <div class="profile-section">
-            <h4>Basic Info</h4>
-            <div id="profile-basic"></div>
+      <div class="profile-layout">
+
+        <!-- ── Chat column ── -->
+        <div class="chat-col">
+          <div class="chat-header">
+            <div>
+              <div style="font-weight:700;font-size:1rem;">Profile Builder</div>
+              <div style="color:var(--muted);font-size:.8rem;margin-top:2px;">Chat to build your profile · Upload your CV to get started instantly</div>
+            </div>
+            <button class="btn btn-outline" onclick="resetProfileChat()" title="Start over" style="font-size:.8rem;padding:6px 12px;">↺ Reset</button>
           </div>
-          <div class="profile-section">
-            <h4>Skills</h4>
-            <div id="profile-skills"></div>
-            <div class="add-skill-row" style="margin-top:12px;">
-              <input type="text" id="new-skill-input" placeholder="Add skill…" onkeydown="if(event.key==='Enter')addSkill()" />
-              <button class="btn btn-outline" onclick="addSkill()">+</button>
+
+          <div class="chat-messages" id="chat-messages">
+            <!-- populated by JS -->
+          </div>
+
+          <!-- CV upload drop zone (shown when chat is empty) -->
+          <div id="cv-drop-hint" class="cv-drop-hint" onclick="document.getElementById('cv-file-input').click()">
+            <div style="font-size:1.8rem;margin-bottom:6px;">📄</div>
+            <div style="font-weight:600;font-size:.9rem;">Drop your CV here or click to upload</div>
+            <div style="color:var(--muted);font-size:.78rem;margin-top:3px;">PDF or DOCX · Auto-parsed instantly</div>
+          </div>
+
+          <div class="chat-input-area">
+            <label class="upload-btn" for="cv-file-input" title="Upload your CV">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              CV
+            </label>
+            <input type="file" id="cv-file-input" accept=".pdf,.docx" style="display:none" onchange="handleCVUpload(this.files[0])" />
+
+            <textarea
+              id="chat-input"
+              class="chat-textarea"
+              placeholder="Type a message… e.g. 'I also know Python' or 'Change my title to Product Manager'"
+              rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"
+              oninput="autoResizeChatInput(this)"
+            ></textarea>
+
+            <button class="send-btn" id="btn-send-chat" onclick="sendChatMessage()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Profile panel column ── -->
+        <div class="profile-panel" id="profile-panel">
+          <div id="profile-empty-state" class="profile-empty">
+            <div style="font-size:2rem;margin-bottom:10px;">👤</div>
+            <div style="font-weight:600;font-size:.9rem;color:var(--text);">Your profile will appear here</div>
+            <div style="color:var(--muted);font-size:.8rem;margin-top:4px;">Upload your CV or start chatting to build it</div>
+          </div>
+          <div id="profile-content" style="display:none;">
+            <div class="pp-header">
+              <div id="pp-name" class="pp-name">—</div>
+              <div id="pp-title" class="pp-title">—</div>
+              <div id="pp-exp" class="pp-exp"></div>
+            </div>
+            <div class="pp-section">
+              <div class="pp-label">Summary</div>
+              <div id="pp-summary" class="pp-summary-text"></div>
+            </div>
+            <div class="pp-section">
+              <div class="pp-label">Skills</div>
+              <div id="pp-skills" class="pp-chips"></div>
+              <div class="add-skill-row" style="margin-top:8px;">
+                <input type="text" id="new-skill-input" placeholder="Add skill…" onkeydown="if(event.key==='Enter')addSkill()" style="font-size:.82rem;padding:7px 10px;" />
+                <button class="btn btn-outline" onclick="addSkill()" style="padding:7px 12px;font-size:.82rem;">+</button>
+              </div>
+            </div>
+            <div class="pp-section">
+              <div class="pp-label">Industries</div>
+              <div id="pp-industries" class="pp-chips"></div>
+            </div>
+            <div class="pp-section">
+              <div class="pp-label">Target Roles</div>
+              <div id="pp-preferred" class="pp-chips"></div>
+            </div>
+            <div class="pp-section">
+              <div class="pp-label">Experience</div>
+              <div id="pp-experience"></div>
+            </div>
+            <div id="pp-save-row" style="display:none;margin-top:14px;">
+              <button class="btn btn-accent" onclick="saveProfileManual()" style="width:100%;">Save Changes</button>
             </div>
           </div>
-          <div class="profile-section" style="grid-column:span 2;">
-            <h4>Summary</h4>
-            <textarea id="profile-summary-edit" rows="3" onchange="markProfileDirty()"></textarea>
-          </div>
-          <div class="profile-section">
-            <h4>Industries</h4>
-            <div id="profile-industries"></div>
-          </div>
-          <div class="profile-section">
-            <h4>Target Roles</h4>
-            <div id="profile-preferred"></div>
-          </div>
         </div>
-        <div style="display:flex;gap:10px;margin-top:16px;">
-          <button class="btn btn-accent" id="btn-save-profile" onclick="saveProfile()" style="display:none;">Save Changes</button>
+
+      </div><!-- /profile-layout -->
+
+      <!-- Hidden CV drop overlay (drag onto entire tab) -->
+      <div id="cv-drag-overlay" class="cv-drag-overlay" style="display:none;">
+        <div class="cv-drag-inner">
+          <div style="font-size:3rem;margin-bottom:12px;">📄</div>
+          <div style="font-size:1.1rem;font-weight:700;">Drop your CV to upload</div>
         </div>
       </div>
     </div>
@@ -1190,70 +1350,190 @@ async function populatePipelineSelects() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// CANDIDATE: MY PROFILE
+// CANDIDATE: PROFILE CHAT
 // ═══════════════════════════════════════════════════════════════════
+
 async function loadMyProfile() {
   try {
     const { metaCV } = await api("GET", "/api/meta-cvs/me");
-    if (metaCV) { metaCVData = metaCV; renderProfile(); }
-  } catch {}
+    if (metaCV) {
+      metaCVData = metaCV;
+      renderProfilePanel();
+      appendMsg("assistant", `Welcome back! Your profile is loaded — **${(metaCVData.skills || []).length} skills** listed, title: **${metaCVData.title || "not set"}**.\n\nTell me what to update, or upload a new CV to refresh everything.`);
+      hideCVDropHint();
+    } else {
+      appendMsg("assistant", "Hi! I'm your profile assistant. Let's build your profile together.\n\nThe quickest way is to **upload your CV** — I'll extract everything automatically. Or just describe your background and I'll guide you through it.");
+    }
+  } catch {
+    appendMsg("assistant", "Hi! Upload your CV or describe your background to get started.");
+  }
+  wireDragDrop();
 }
 
-async function buildMetaCV() {
-  const desc = document.getElementById("metacv-description").value.trim();
-  if (!desc) return toast("Describe your background.", "err");
-  document.getElementById("btn-build-metacv").style.display = "none";
-  document.getElementById("metacv-loading").style.display = "flex";
+function wireDragDrop() {
+  const tab = document.getElementById("tab-profile");
+  const overlay = document.getElementById("cv-drag-overlay");
+  const hint = document.getElementById("cv-drop-hint");
+  if (!tab) return;
+  tab.addEventListener("dragover", e => { e.preventDefault(); overlay.style.display = "flex"; hint.classList.add("dragover"); });
+  tab.addEventListener("dragleave", e => { if (!tab.contains(e.relatedTarget)) { overlay.style.display = "none"; hint.classList.remove("dragover"); } });
+  tab.addEventListener("drop", e => { e.preventDefault(); overlay.style.display = "none"; hint.classList.remove("dragover"); const f = e.dataTransfer.files[0]; if (f) handleCVUpload(f); });
+  hint.addEventListener("dragover", e => { e.preventDefault(); hint.classList.add("dragover"); });
+  hint.addEventListener("dragleave", () => hint.classList.remove("dragover"));
+  hint.addEventListener("drop", e => { e.preventDefault(); hint.classList.remove("dragover"); const f = e.dataTransfer.files[0]; if (f) handleCVUpload(f); });
+}
+
+async function handleCVUpload(file) {
+  if (!file) return;
+  const ext = file.name.split(".").pop().toLowerCase();
+  if (!["pdf", "docx"].includes(ext)) return toast("Please upload a PDF or DOCX file.", "err");
+
+  appendEvent(`Uploading ${file.name}…`);
+  hideCVDropHint();
+
+  const uploadLabel = document.querySelector(".upload-btn");
+  if (uploadLabel) uploadLabel.classList.add("loading");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
   try {
-    const { metaCV } = await api("POST", "/api/meta-cvs/build", { description: desc });
-    metaCVData = metaCV;
-    document.getElementById("metacv-description").value = "";
-    renderProfile();
-    toast("Profile built!", "ok");
-  } catch (e) { toast("Failed: " + e.message, "err"); }
-  finally { document.getElementById("btn-build-metacv").style.display = ""; document.getElementById("metacv-loading").style.display = "none"; }
+    const r = await apiFetch("POST", "/api/candidate/upload-cv", formData, true);
+    if (r.error) throw new Error(r.error);
+    metaCVData = r.metaCV;
+    appendEvent(`CV parsed — ${file.name}`);
+    appendMsg("assistant", r.initMessage);
+    renderProfilePanel();
+    toast("CV imported!", "ok");
+  } catch (e) {
+    appendEvent(`Failed to parse: ${e.message}`);
+    toast("CV parse failed: " + e.message, "err");
+  } finally {
+    if (uploadLabel) uploadLabel.classList.remove("loading");
+    // reset file input so same file can be re-uploaded
+    const fi = document.getElementById("cv-file-input");
+    if (fi) fi.value = "";
+  }
 }
 
-function renderProfile() {
+async function sendChatMessage() {
+  const input = document.getElementById("chat-input");
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = "";
+  input.style.height = "auto";
+  appendMsg("user", message);
+  hideCVDropHint();
+
+  const sendBtn = document.getElementById("btn-send-chat");
+  sendBtn.disabled = true;
+  const typingId = appendTyping();
+
+  try {
+    const r = await api("POST", "/api/candidate/chat", { message });
+    removeTyping(typingId);
+    appendMsg("assistant", r.message);
+    if (r.profile) { metaCVData = r.profile; renderProfilePanel(); }
+  } catch (e) {
+    removeTyping(typingId);
+    appendMsg("assistant", `Sorry, something went wrong: ${e.message}`);
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function resetProfileChat() {
+  document.getElementById("chat-messages").innerHTML = "";
+  document.getElementById("cv-drop-hint").style.display = "block";
+  appendMsg("assistant", "Let's start fresh! Upload your CV or describe your background and I'll guide you.");
+}
+
+// ── Chat DOM helpers ─────────────────────────────────────────────────────────
+
+function appendMsg(role, text) {
+  const el = document.getElementById("chat-messages");
+  if (!el) return;
+  const isUser = role === "user";
+  const avatar = isUser ? (currentUser?.name?.[0]?.toUpperCase() || "U") : "AI";
+  const html = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>");
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  div.innerHTML = `<div class="msg-avatar">${avatar}</div><div class="msg-bubble">${html}</div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendEvent(text) {
+  const el = document.getElementById("chat-messages");
+  if (!el) return;
+  const div = document.createElement("div");
+  div.className = "msg-event";
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendTyping() {
+  const el = document.getElementById("chat-messages");
+  if (!el) return "";
+  const id = "typing-" + Date.now();
+  const div = document.createElement("div");
+  div.className = "msg assistant";
+  div.id = id;
+  div.innerHTML = `<div class="msg-avatar">AI</div><div class="msg-bubble" style="color:var(--muted)"><span class="spinner" style="width:12px;height:12px;border-width:1.5px;vertical-align:middle;display:inline-block"></span> typing…</div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) { if (id) document.getElementById(id)?.remove(); }
+
+function hideCVDropHint() {
+  const h = document.getElementById("cv-drop-hint");
+  if (h) h.style.display = "none";
+}
+
+function autoResizeChatInput(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+}
+
+// ── Profile panel rendering ──────────────────────────────────────────────────
+
+function renderProfilePanel() {
   if (!metaCVData) return;
-  document.getElementById("profile-view").style.display = "block";
-  document.getElementById("profile-basic").innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:6px;font-size:.875rem;">
-      <div><span style="color:var(--muted)">Name:</span> ${metaCVData.name || "—"}</div>
-      <div><span style="color:var(--muted)">Title:</span> ${metaCVData.title || "—"}</div>
-      <div><span style="color:var(--muted)">Experience:</span> ${metaCVData.total_experience_years ?? "?"} years</div>
-      <div><span style="color:var(--muted)">Industries:</span> ${(metaCVData.industries || []).join(", ") || "—"}</div>
-    </div>`;
-  document.getElementById("profile-summary-edit").value = metaCVData.summary || "";
-  renderSkillsEditor();
-  renderIndustriesEditor();
-  renderPreferredRoles();
-}
+  document.getElementById("profile-empty-state").style.display = "none";
+  document.getElementById("profile-content").style.display = "block";
 
-function renderSkillsEditor() {
-  const el = document.getElementById("profile-skills");
-  el.innerHTML = '<div class="skills-editor">' + (metaCVData.skills || []).map((s, i) =>
-    `<span class="skill-editable">${s}<span class="skill-remove" onclick="removeSkill(${i})">×</span></span>`
-  ).join("") + "</div>";
-}
+  document.getElementById("pp-name").textContent = metaCVData.name || "—";
+  document.getElementById("pp-title").textContent = metaCVData.title || "—";
+  document.getElementById("pp-exp").textContent = metaCVData.total_experience_years != null
+    ? `${metaCVData.total_experience_years} yrs experience` : "";
+  document.getElementById("pp-summary").textContent = metaCVData.summary || "—";
 
-function renderIndustriesEditor() {
-  const el = document.getElementById("profile-industries");
-  el.innerHTML = '<div class="skills-editor">' + (metaCVData.industries || []).map(i =>
-    `<span class="skill-chip">${i}</span>`
-  ).join("") + "</div>";
-}
+  document.getElementById("pp-skills").innerHTML =
+    (metaCVData.skills || []).map((s, i) =>
+      `<span class="pp-chip">${s}<span class="pp-chip-remove" onclick="removeSkill(${i})">×</span></span>`
+    ).join("") || '<span style="color:var(--muted);font-size:.8rem">—</span>';
 
-function renderPreferredRoles() {
-  const el = document.getElementById("profile-preferred");
-  el.innerHTML = '<div class="skills-editor">' + (metaCVData.preferredRoles || []).map(r =>
-    `<span class="skill-chip">${r}</span>`
-  ).join("") + "</div>";
+  document.getElementById("pp-industries").innerHTML =
+    (metaCVData.industries || []).map(i => `<span class="pp-chip">${i}</span>`).join("") || '<span style="color:var(--muted);font-size:.8rem">—</span>';
+
+  document.getElementById("pp-preferred").innerHTML =
+    (metaCVData.preferredRoles || []).map(r => `<span class="pp-chip">${r}</span>`).join("") || '<span style="color:var(--muted);font-size:.8rem">—</span>';
+
+  document.getElementById("pp-experience").innerHTML =
+    (metaCVData.experience || []).slice(0, 4).map(e =>
+      `<div class="pp-exp-item"><div class="pp-exp-title">${e.title || "—"}</div><div class="pp-exp-co">${e.company || ""}${e.duration ? " · " + e.duration : ""}</div></div>`
+    ).join("") || '<span style="color:var(--muted);font-size:.8rem">—</span>';
 }
 
 function removeSkill(index) {
+  if (!metaCVData?.skills) return;
   metaCVData.skills.splice(index, 1);
-  renderSkillsEditor();
+  renderProfilePanel();
   markProfileDirty();
 }
 
@@ -1261,23 +1541,24 @@ function addSkill() {
   const input = document.getElementById("new-skill-input");
   const skill = input.value.trim();
   if (!skill) return;
+  if (!metaCVData) return toast("Build your profile first.", "err");
   if (!metaCVData.skills) metaCVData.skills = [];
   metaCVData.skills.push(skill);
   input.value = "";
-  renderSkillsEditor();
+  renderProfilePanel();
   markProfileDirty();
 }
 
 function markProfileDirty() {
-  profileDirty = true;
-  document.getElementById("btn-save-profile").style.display = "block";
+  const row = document.getElementById("pp-save-row");
+  if (row) row.style.display = "block";
 }
 
-async function saveProfile() {
-  metaCVData.summary = document.getElementById("profile-summary-edit").value;
+async function saveProfileManual() {
+  if (!metaCVData) return;
   await api("PUT", "/api/meta-cvs/me", metaCVData);
-  profileDirty = false;
-  document.getElementById("btn-save-profile").style.display = "none";
+  const row = document.getElementById("pp-save-row");
+  if (row) row.style.display = "none";
   toast("Profile saved.", "ok");
 }
 

@@ -7,8 +7,8 @@ const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 
 const { requireAuth, requireRole, hashPassword, verifyPassword, signToken } = require("./utils/auth");
-const { parseFile, parseCsvRow } = require("./utils/cvParser");
-const { rankCandidates, deepDive, buildJD, matchCandidateToJDs, gapAnalysis, buildMetaCV } = require("./utils/ranker");
+const { parseFile, parseCsvRow, parseFileOnly } = require("./utils/cvParser");
+const { rankCandidates, deepDive, buildJD, matchCandidateToJDs, gapAnalysis, buildMetaCV, profileChat } = require("./utils/ranker");
 const { exportCSV, exportPDF } = require("./utils/exporter");
 const {
   ensureDataDir,
@@ -51,8 +51,9 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
-// ── In-memory conversation (per-server-session, not per-user for simplicity) ──
-let conversationHistory = [];
+// ── In-memory state ───────────────────────────────────────────────────────────
+let conversationHistory = [];                      // recruiter search context
+const profileChatSessions = new Map();             // userId -> { messages, currentProfile }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // AUTH ROUTES
@@ -450,6 +451,86 @@ app.get("/api/gap-analysis/:jdId", requireAuth, requireRole("candidate"), async 
     const analysis = await gapAnalysis(metaCV, jd);
     res.json({ success: true, candidate: req.user.name, jdTitle: jd.title, analysis });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Candidate: upload their own CV for profile building ───────────────────────
+app.post("/api/candidate/upload-cv", requireAuth, requireRole("candidate"), upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded." });
+
+  try {
+    console.log(`[Profile] Parsing CV for candidate: ${req.user.name}`);
+    const { rawText, structured } = await parseFileOnly(req.file.path);
+    try { fs.unlinkSync(req.file.path); } catch {}
+
+    const metaCV = {
+      userId: req.user.id,
+      name: structured.name || req.user.name,
+      ...structured,
+      updatedAt: new Date().toISOString(),
+    };
+    saveMetaCV(metaCV);
+
+    // Build a readable summary for the chat init message
+    const skills = (structured.skills || []).slice(0, 5).join(", ");
+    const exp = structured.total_experience_years ? `${structured.total_experience_years} years of experience` : "";
+    const roles = (structured.experience || []).slice(0, 2).map(e => `${e.title} at ${e.company}`).join(", ");
+    const initMessage = `I've read your CV! Here's what I found:\n\n**${structured.name || req.user.name}** — ${structured.title || "Professional"}\n${[exp, skills ? `Skills: ${skills}` : ""].filter(Boolean).join(" · ")}\n${roles ? `Recent roles: ${roles}` : ""}\n\nDoes everything look right? You can tell me what to update, or ask me to add missing experience, skills, or anything else.`;
+
+    // Reset / init chat session for this candidate
+    profileChatSessions.set(req.user.id, {
+      messages: [{ role: "assistant", content: initMessage }],
+      currentProfile: metaCV,
+    });
+
+    res.json({ success: true, metaCV, initMessage });
+  } catch (err) {
+    console.error("[Profile CV]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Candidate: profile building chat ─────────────────────────────────────────
+app.post("/api/candidate/chat", requireAuth, requireRole("candidate"), async (req, res) => {
+  const { message } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: "message is required" });
+
+  // Get or initialise session
+  let session = profileChatSessions.get(req.user.id);
+  if (!session) {
+    const existingProfile = getMetaCVByUserId(req.user.id) || { userId: req.user.id, name: req.user.name };
+    session = { messages: [], currentProfile: existingProfile };
+    profileChatSessions.set(req.user.id, session);
+  }
+
+  // Append the user message to history before calling the AI
+  session.messages.push({ role: "user", content: message });
+
+  try {
+    // Call AI — pass history without the latest user message (we pass it as userMessage param)
+    const result = await profileChat(message, session.messages.slice(0, -1), session.currentProfile);
+
+    const aiMessage = result.message || "Got it! Is there anything else you'd like to update?";
+    session.messages.push({ role: "assistant", content: aiMessage });
+
+    // Merge profile updates
+    if (result.profile) {
+      session.currentProfile = {
+        ...session.currentProfile,
+        ...result.profile,
+        userId: req.user.id,
+        updatedAt: new Date().toISOString(),
+      };
+      saveMetaCV(session.currentProfile);
+    }
+
+    // Keep session history bounded
+    if (session.messages.length > 30) session.messages = session.messages.slice(-30);
+
+    res.json({ success: true, message: aiMessage, profile: session.currentProfile });
+  } catch (err) {
+    console.error("[Profile Chat]", err.message);
     res.status(500).json({ error: err.message });
   }
 });

@@ -220,4 +220,46 @@ async function buildMetaCV(description) {
   return await chatJSON([{ role: "user", content: META_CV_PROMPT + description }], { max_tokens: 1200 });
 }
 
-module.exports = { rankCandidates, deepDive, buildJD, matchCandidateToJDs, gapAnalysis, buildMetaCV };
+// ── Profile Chat ──────────────────────────────────────────────────────────────
+
+const PROFILE_CHAT_SYSTEM = `You are a friendly, encouraging career profile assistant. You help candidates build a structured professional profile through natural conversation.
+
+You always have access to the candidate's current profile state. Update it based on what they tell you — adding new skills, fixing their title, updating experience, etc.
+
+Rules:
+- Be warm and conversational, not robotic
+- If the profile is mostly empty, ask ONE focused question to fill an important gap
+- If the profile is comprehensive, just confirm changes and ask if anything else needs updating
+- Always return updated profile JSON, even if unchanged
+- Keep messages concise (2–4 sentences max)
+
+Return ONLY a valid JSON object — no markdown, no extra text:
+{
+  "message": "Your conversational response to the candidate",
+  "profile": {
+    "name": "...",
+    "title": "current or desired job title",
+    "summary": "3-4 sentence professional summary",
+    "skills": ["skill1", "skill2"],
+    "industries": ["industry1"],
+    "total_experience_years": <number>,
+    "preferredRoles": ["role1", "role2"],
+    "education": [{ "degree": "...", "institution": "...", "year": "..." }],
+    "experience": [{ "title": "...", "company": "...", "duration": "...", "summary": "..." }]
+  }
+}`;
+
+async function profileChat(userMessage, history, currentProfile) {
+  const profileSnap = JSON.stringify(currentProfile || {}, null, 2);
+
+  // Build messages: system (with current profile), then conversation history, then latest user message
+  const messages = [
+    { role: "system", content: PROFILE_CHAT_SYSTEM + `\n\nCURRENT PROFILE STATE:\n${profileSnap}` },
+    ...history.slice(-10),        // last 5 turns of conversation
+    { role: "user", content: userMessage },
+  ];
+
+  return await chatJSON(messages, { max_tokens: 1500, temperature: 0.3 });
+}
+
+module.exports = { rankCandidates, deepDive, buildJD, matchCandidateToJDs, gapAnalysis, buildMetaCV, profileChat };

@@ -98,4 +98,13 @@ function splitCSVField(val) {
   return val.split(/[;,|]/).map(s => s.trim()).filter(Boolean);
 }
 
-module.exports = { parseFile, parseCsvRow };
+// Parse a file and return raw text + structured data WITHOUT saving to DB
+// Used when a candidate uploads their own CV for profile building
+async function parseFileOnly(filePath) {
+  const rawText = await extractText(filePath);
+  if (!rawText || rawText.trim().length < 50) throw new Error("Could not extract enough text — file may be image-only or empty.");
+  const structured = await chatJSON([{ role: "user", content: EXTRACTION_PROMPT + rawText.slice(0, 6000) }], { max_tokens: 1500 });
+  return { rawText: rawText.slice(0, 8000), structured };
+}
+
+module.exports = { parseFile, parseCsvRow, parseFileOnly };
