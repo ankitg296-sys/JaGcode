@@ -535,6 +535,124 @@ app.post("/api/candidate/chat", requireAuth, requireRole("candidate"), async (re
   }
 });
 
+// ── Candidate: download their profile as a PDF ───────────────────────────────
+app.get("/api/candidate/download-profile", requireAuth, requireRole("candidate"), (req, res) => {
+  const metaCV = getMetaCVByUserId(req.user.id);
+  if (!metaCV) return res.status(400).json({ error: "No profile found. Build your profile first." });
+
+  const PDFDocument = require("pdfkit");
+  const doc = new PDFDocument({ margin: 50, size: "A4" });
+
+  const safeName = (metaCV.name || "profile").replace(/[^a-zA-Z0-9 ]/g, "_");
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${safeName}-TalentMatch-Profile.pdf"`);
+  doc.pipe(res);
+
+  const C = {
+    accent: "#6366f1", success: "#10b981", muted: "#64748b",
+    text: "#1e293b", border: "#e2e8f0", bg: "#0f1117",
+  };
+
+  // ── Header band ──────────────────────────────────────────────────────────
+  doc.rect(0, 0, doc.page.width, 90).fill(C.bg);
+  doc.fillColor("#ffffff").fontSize(22).font("Helvetica-Bold")
+    .text(metaCV.name || "Candidate Profile", 50, 26);
+  doc.fillColor(C.accent).fontSize(12).font("Helvetica")
+    .text(metaCV.title || "", 50, 54);
+
+  const contactParts = [metaCV.email, metaCV.phone, metaCV.location].filter(Boolean);
+  if (contactParts.length) {
+    doc.fillColor("#94a3b8").fontSize(9).text(contactParts.join("   ·   "), 50, 72);
+  }
+
+  // TalentMatch watermark
+  doc.fillColor("#94a3b8").fontSize(8).font("Helvetica")
+    .text("TalentMatch AI Profile", 0, 76, { align: "right", width: doc.page.width - 50 });
+
+  doc.y = 110;
+
+  // ── Helper: section heading ───────────────────────────────────────────────
+  const sectionHead = (title) => {
+    doc.moveDown(0.5);
+    doc.fillColor(C.accent).fontSize(9).font("Helvetica-Bold")
+      .text(title.toUpperCase(), 50, doc.y, { characterSpacing: 1 });
+    doc.moveDown(0.2);
+    doc.rect(50, doc.y, doc.page.width - 100, 1).fill(C.border);
+    doc.moveDown(0.6);
+    doc.fillColor(C.text).font("Helvetica").fontSize(10);
+  };
+
+  // ── Summary ───────────────────────────────────────────────────────────────
+  if (metaCV.summary) {
+    sectionHead("Professional Summary");
+    doc.fillColor(C.text).fontSize(10).font("Helvetica")
+      .text(metaCV.summary, 50, doc.y, { width: doc.page.width - 100, lineGap: 3 });
+    doc.moveDown(0.5);
+  }
+
+  // ── Experience ────────────────────────────────────────────────────────────
+  if (metaCV.experience?.length) {
+    sectionHead("Experience");
+    metaCV.experience.forEach(e => {
+      doc.fillColor(C.text).fontSize(10.5).font("Helvetica-Bold").text(e.title || "Role", 50, doc.y);
+      doc.fillColor(C.muted).fontSize(9.5).font("Helvetica")
+        .text([e.company, e.duration].filter(Boolean).join("  ·  "), 50, doc.y);
+      if (e.summary) {
+        doc.fillColor(C.text).fontSize(9.5).text(e.summary, 50, doc.y, { width: doc.page.width - 100, lineGap: 2 });
+      }
+      doc.moveDown(0.6);
+    });
+  }
+
+  // ── Education ─────────────────────────────────────────────────────────────
+  if (metaCV.education?.length) {
+    sectionHead("Education");
+    metaCV.education.forEach(e => {
+      doc.fillColor(C.text).fontSize(10.5).font("Helvetica-Bold").text(e.degree || "Degree", 50, doc.y);
+      doc.fillColor(C.muted).fontSize(9.5).font("Helvetica")
+        .text([e.institution, e.year].filter(Boolean).join("  ·  "), 50, doc.y);
+      doc.moveDown(0.5);
+    });
+  }
+
+  // ── Skills ────────────────────────────────────────────────────────────────
+  if (metaCV.skills?.length) {
+    sectionHead("Skills");
+    doc.fillColor(C.text).fontSize(10).font("Helvetica")
+      .text(metaCV.skills.join("   ·   "), 50, doc.y, { width: doc.page.width - 100, lineGap: 4 });
+    doc.moveDown(0.5);
+  }
+
+  // ── Industries & Target Roles ─────────────────────────────────────────────
+  const hasTwoCol = metaCV.industries?.length && metaCV.preferredRoles?.length;
+  if (hasTwoCol) {
+    sectionHead("Industries & Target Roles");
+    const half = (doc.page.width - 100) / 2 - 10;
+    const startY = doc.y;
+    doc.fillColor(C.accent).fontSize(8).font("Helvetica-Bold").text("INDUSTRIES", 50, startY);
+    doc.fillColor(C.text).fontSize(10).font("Helvetica")
+      .text(metaCV.industries.join(", "), 50, doc.y, { width: half, lineGap: 3 });
+    const rightX = 50 + half + 20;
+    doc.fillColor(C.accent).fontSize(8).font("Helvetica-Bold").text("TARGET ROLES", rightX, startY);
+    doc.fillColor(C.text).fontSize(10).font("Helvetica")
+      .text(metaCV.preferredRoles.join(", "), rightX, startY + 12, { width: half, lineGap: 3 });
+  } else if (metaCV.industries?.length) {
+    sectionHead("Industries");
+    doc.fillColor(C.text).fontSize(10).text(metaCV.industries.join(", "), 50, doc.y, { width: doc.page.width - 100 });
+  } else if (metaCV.preferredRoles?.length) {
+    sectionHead("Target Roles");
+    doc.fillColor(C.text).fontSize(10).text(metaCV.preferredRoles.join(", "), 50, doc.y, { width: doc.page.width - 100 });
+  }
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  doc.moveDown(2);
+  doc.fillColor(C.muted).fontSize(8)
+    .text(`Generated by TalentMatch AI · ${new Date().toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}`,
+      50, doc.y, { align: "center", width: doc.page.width - 100 });
+
+  doc.end();
+});
+
 // ── Catch-all ─────────────────────────────────────────────────────────────────
 app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
