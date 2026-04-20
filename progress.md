@@ -1,5 +1,5 @@
 # TalentMatch AI — Progress Log
-*Last updated: April 18, 2026*
+*Last updated: April 20, 2026*
 
 ---
 
@@ -9,19 +9,62 @@
 JagCode/
 ├── Phase 1/        ← PoC (complete, tested, archived)
 ├── Phase 2/        ← Local deployable product (complete, live)
+├── Phase 3/        ← Two-sided platform with auth (complete, live)
 ├── plan.md.txt     ← Master business plan
 └── progress.md     ← This file
 ```
 
 ---
 
-## Current Status: Phase 2 ✅ Live at http://localhost:3000
+## Current Status: Phase 3 ✅ Live at http://localhost:3000
 
-Both phases are fully built and tested with real CVs. Phase 2 is the active product.
+All three phases are fully built. Phase 3 is the active product — two-sided platform with auth, candidate portal, and recruiter pipeline.
 
 ---
 
 ## Session Log
+
+### April 20, 2026 — Phase 3 Built, Tested & Live
+
+#### What was built
+Full Phase 3 from scratch in a single session. Lives in `Phase 3/`.
+
+| File | Description |
+|---|---|
+| `Phase 3/server.js` | Express server — 30 API routes across auth, recruiter, candidate |
+| `Phase 3/utils/auth.js` | bcryptjs + JWT — hashPassword, signToken, requireAuth, requireRole |
+| `Phase 3/utils/storage.js` | Extended JSON persistence — users, meta-cvs, pipeline + all Phase 2 |
+| `Phase 3/utils/openrouter.js` | OpenRouter API wrapper (same as Phase 2) |
+| `Phase 3/utils/cvParser.js` | PDF/DOCX parsing + ATS CSV row import (same as Phase 2) |
+| `Phase 3/utils/preFilter.js` | TF-IDF pre-filter (same as Phase 2) |
+| `Phase 3/utils/ranker.js` | Phase 2 ranker + bi-directional matching + gap analysis + Meta CV builder |
+| `Phase 3/utils/exporter.js` | CSV + PDF export (same as Phase 2) |
+| `Phase 3/public/index.html` | Full two-sided UI — Auth screen + Recruiter view + Candidate view |
+| `Phase 3/1-INSTALL.bat` | One-click install |
+| `Phase 3/2-START.bat` | One-click start |
+
+#### What's new vs Phase 2
+
+| Capability | Phase 2 | Phase 3 |
+|---|---|---|
+| Auth | None | bcryptjs + JWT, 7-day tokens |
+| Roles | Single user | recruiter / candidate |
+| Candidate portal | None | Full — profile, matches, gap analysis |
+| Meta CV Builder | None | AI builds profile from plain English |
+| Bi-directional matching | None | Candidate → JDs scored + ranked |
+| Gap analysis | None | Readiness %, severity-tagged gaps, action plan |
+| Pipeline | None | Kanban — 6 stages, drag between columns |
+| UI | 5 tabs | Auth screen → role-based dashboard |
+
+#### Smoke test — Phase 3
+- ✅ Register as recruiter → JWT issued, recruiter dashboard loads
+- ✅ Register as candidate → JWT issued, candidate portal loads
+- ✅ Role enforcement — candidate blocked from `/api/candidates` with 403
+- ✅ Candidate `/api/meta-cvs/me` returns null until profile is built
+- ✅ Pipeline GET returns stages array
+- ✅ Login flow works — correct token re-issued
+
+---
 
 ### April 18, 2026 — Phase 2 Built, Tested & Live
 
@@ -115,15 +158,17 @@ Search: *"HR professional with recruitment experience"*
 - [x] `temperature: 0` — consistent scores across identical queries
 - [x] All code pushed to GitHub (ankitg296-sys/JaGcode)
 
-### Phase 3 — Not started
-- [ ] User accounts + auth (email/password)
-- [ ] Multi-user support per org
-- [ ] Cloud / web deployment
-- [ ] Meta CV Builder (candidate side)
-- [ ] Candidate portal
-- [ ] Bi-directional matching
-- [ ] Recruiter dashboard (pipeline view, notes, tags)
-- [ ] Skills gap analysis
+### Phase 3 ✅ Complete
+- [x] User accounts + auth (email/password, bcryptjs + JWT)
+- [x] Roles: recruiter and candidate — fully separated views
+- [x] Meta CV Builder — AI builds candidate profile from plain English
+- [x] Candidate portal — matched roles, gap analysis
+- [x] Bi-directional matching — candidate profile ranked against all JDs
+- [x] Skills gap analysis — readiness score, severity-tagged gaps, action plan
+- [x] Recruiter pipeline kanban — Applied → Screening → Interview → Offer → Hired / Rejected
+- [x] All Phase 2 recruiter features inherited (upload, search, saved searches, JD library, CSV import, export)
+- [ ] Multi-user / org isolation (all users share one DB — Phase 4)
+- [ ] Cloud / web deployment (Phase 4)
 
 ---
 
@@ -141,9 +186,9 @@ Search: *"HR professional with recruitment experience"*
 
 | Priority | Action | Status |
 |---|---|---|
-| 🔴 Critical | Test Phase 2 with real CVs — ranking quality | ✅ Done |
+| 🔴 Critical | Smoke test Phase 3 with real CVs + real users | 🔲 Pending |
 | 🔴 Critical | Identify 2–3 design partner candidates | 🔲 In progress |
 | 🟡 High | Refine ranking quality based on HM feedback | 🔲 Pending |
-| 🟡 High | Create demo video of Phase 2 product | 🔲 Pending |
+| 🟡 High | Create demo video of Phase 3 product | 🔲 Pending |
 | 🟢 Medium | Define pricing and pilot terms for design partners | 🔲 Pending |
-| 🟢 Medium | Plan Phase 3 scope | 🔲 Pending |
+| 🟢 Medium | Plan Phase 4 — cloud / multi-org | 🔲 Pending |
